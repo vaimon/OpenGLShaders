@@ -1,9 +1,8 @@
-#include <gl/glew.h>
-#include <SFML/OpenGL.hpp>
-#include <SFML/Window.hpp>
-#include <SFML/Graphics.hpp>
+
 
 #include <iostream>
+#include <fstream>
+#include <sstream>
 #include <string>
 #include "obj_parsing.h"
 
@@ -13,12 +12,26 @@
 GLuint Program;
 // ID атрибута
 GLint Attrib_vertex;
-// ID Vertex Buffer Object
-GLuint VBO;
+// ID VBO вершин
+GLuint VBO_position;
+// ID VBO цвета
+GLuint VBO_normale;
+// ID VBO вершин
+GLuint VBO_texture;
 
-GLuint VAO;
+// ID VAO вершин
+GLuint VAO_position;
+// ID VAO цвета
+GLuint VAO_normale;
+// ID VAO вершин
+GLuint VAO_texture;
 
-GLuint IBO;
+// ID IBO вершин
+GLuint IBO_position;
+// ID IBO цвета
+GLuint IBO_normale;
+// ID IBO вершин
+GLuint IBO_texture;
 
 // Вершина
 struct Vertex
@@ -34,15 +47,17 @@ const char* VertexShaderSource = R"(
 
     // Координаты вершины. Атрибут, инициализируется через буфер.
     in vec3 vertexPosition;
+
+   // in vec3 vertexNormale;
+
+   // in vec2 vertexTextureCoords;
     
-    // Выходной параметр с координатами вершины, интерполируется и передётся во фрагментный шейдер 
-    out vec3 vPosition;
+   // out vec2 vTextureCoordinate;
+
+   // out vec3 vColor; 
 
     void main() {
-        // Передаём непреобразованную координату во фрагментный шейдер
-        vPosition = vertexPosition;
-
-        // Захардкодим углы поворота
+// Захардкодим углы поворота
         float x_angle = -1;
         float y_angle = 1;
         
@@ -57,6 +72,11 @@ const char* VertexShaderSource = R"(
             -sin(y_angle), 0, cos(y_angle)
         );
 
+     //   vTextureCoordinate = vertexTextureCoords;
+
+        // TODO: надо переделать во всякие освещательные штуки
+      //  vColor = vertexNormale;
+
         // Присваиваем вершину волшебной переменной gl_Position
         gl_Position = vec4(position, 1.0);
     }
@@ -66,8 +86,9 @@ const char* VertexShaderSource = R"(
 const char* FragShaderSource = R"(
     #version 330 core
 
-    // Интерполированные координаты вершины, передаются из вершинного шейдера
-    in vec3 vPosition;
+   // in vec2 vTextureCoordinate;
+
+   // in vec3 vColor;
 
     // Цвет, который будем отрисовывать
     out vec4 color;
@@ -77,6 +98,75 @@ const char* FragShaderSource = R"(
     }
 )";
 
+std::vector<GLfloat> vertices_position {};
+std::vector<GLfloat> vertices_normale {};
+std::vector<GLfloat> vertices_texture{};
+
+std::vector<GLuint>  indices_position {};
+std::vector<GLuint> indices_normale{};
+std::vector<GLuint> indices_texture{};
+
+std::vector<std::string> split(const std::string& s, char delim) {
+    std::stringstream ss(s);
+    std::string item;
+    std::vector<std::string> elems;
+    while (std::getline(ss, item, delim)) {
+        elems.push_back(item);
+        // elems.push_back(std::move(item)); // if C++11 (based on comment from @mchiasson)
+    }
+    return elems;
+}
+
+void parseFile(std::string fileName) {
+    
+    std::ifstream obj(fileName);
+
+    if (!obj.is_open()) {
+        throw std::exception("File cannot be opened");
+    }
+
+    std::string line;
+    while (std::getline(obj, line))
+    {
+        std::istringstream iss(line);
+        std::string type;
+        iss >> type;
+        if (type == "v") {
+            auto vertex = split(line, ' ');
+            for (size_t j = 1; j < vertex.size(); j++)
+            {
+                vertices_position.push_back(std::stof(vertex[j]));
+            }
+        }
+        else if (type == "vn") {
+            auto normale = split(line, ' ');
+            for (size_t j = 1; j < normale.size(); j++)
+            {
+                vertices_normale.push_back(std::stof(normale[j]));
+            }
+        }
+        else if (type == "vt") {
+            auto texture = split(line, ' ');
+            for (size_t j = 1; j < texture.size(); j++)
+            {
+                vertices_texture.push_back(std::stof(texture[j]));
+            }
+        }
+        else if (type == "f") {
+            auto splitted = split(line, ' ');
+            for (size_t i = 1; i < splitted.size(); i++)
+            {
+                auto triplet = split(splitted[i], '/');
+                indices_position.push_back(std::stoi(triplet[0]) - 1);
+                indices_texture.push_back(std::stoi(triplet[1]) - 1);
+                indices_normale.push_back(std::stoi(triplet[2]) - 1);
+            }
+        }
+        else {
+            continue;
+        }
+    }
+}
 
 int obj_parsing_main(std::string objFilename) {
     sf::Window window(sf::VideoMode(700, 700), "My OpenGL window", sf::Style::Default, sf::ContextSettings(24));
@@ -86,7 +176,7 @@ int obj_parsing_main(std::string objFilename) {
 
     // Инициализация glew
     glewInit();
-
+    parseFile(objFilename);
     Init();
 
     while (window.isOpen()) {
@@ -142,41 +232,47 @@ void ShaderLog(unsigned int shader)
     }
 }
 
-GLfloat vertices[] = {
-0.5f, 0.5f, 0.0f, // Верхний правый угол
-0.5f, -0.5f, 0.0f, // Нижний правый угол
--0.5f, -0.5f, 0.0f, // Нижний левый угол
--0.5f, 0.5f, 0.0f // Верхний левый угол
-};
-
-GLuint indices[] = {
-0, 1, 3, // Первый треугольник
-1, 2, 3 // Второй треугольник
-};
-
 
 void InitBuffers()
 {
-    glGenBuffers(1, &VBO);
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &IBO);
+    std::vector<GLfloat> vertices_position = {
+         -0.5, -0.5, +0.5 ,  -0.5, +0.5, +0.5 ,  +0.5, +0.5, +0.5 ,
+         +0.5, +0.5, +0.5 ,  +0.5, -0.5, +0.5 ,  -0.5, -0.5, +0.5 ,
+         -0.5, -0.5, -0.5 ,  +0.5, +0.5, -0.5 ,  -0.5, +0.5, -0.5 ,
+         +0.5, +0.5, -0.5 ,  -0.5, -0.5, -0.5 ,  +0.5, -0.5, -0.5 ,
+
+         -0.5, +0.5, -0.5 ,  -0.5, +0.5, +0.5 ,  +0.5, +0.5, +0.5 ,
+         +0.5, +0.5, +0.5 ,  +0.5, +0.5, -0.5 ,  -0.5, +0.5, -0.5 ,
+         -0.5, -0.5, -0.5 ,  +0.5, -0.5, +0.5 ,  -0.5, -0.5, +0.5 ,
+         +0.5, -0.5, +0.5 ,  -0.5, -0.5, -0.5 ,  +0.5, -0.5, -0.5 ,
+
+         +0.5, -0.5, -0.5 ,  +0.5, -0.5, +0.5 ,  +0.5, +0.5, +0.5 ,
+         +0.5, +0.5, +0.5 ,  +0.5, +0.5, -0.5 ,  +0.5, -0.5, -0.5 ,
+         -0.5, -0.5, -0.5 ,  -0.5, +0.5, +0.5 ,  -0.5, -0.5, +0.5 ,
+         -0.5, +0.5, +0.5 ,  -0.5, -0.5, -0.5 ,  -0.5, +0.5, -0.5 };
+
+    std::vector<GLuint> indices_position = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35};
+
+    glGenBuffers(1, &VBO_position);
+    glGenVertexArrays(1, &VAO_position);
+    glGenBuffers(1, &IBO_position);
     
 
     //Привязываем VAO
-    glBindVertexArray(VAO); 
+    glBindVertexArray(VAO_position);
 
-    // Копируем массив вершин в буфер для OpenGL
-    glEnableVertexAttribArray(Attrib_vertex);
+    
+    //glEnableVertexAttribArray(0);
 
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_position);
+    glBufferData(GL_ARRAY_BUFFER, vertices_position.size() * sizeof(GLfloat), vertices_position.data(), GL_STATIC_DRAW);
 
     // Копируем наши индексы в в буфер для OpenGL
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO_position);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_position.size() * sizeof(GLuint), indices_position.data(), GL_STATIC_DRAW);
 
-    //Устанавливаем указатели на вершинные атрибуты
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    // 3. Устанавливаем указатели на вершинные атрибуты
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
     glEnableVertexAttribArray(0);
 
     //Отвязываем VAO
@@ -220,11 +316,10 @@ void InitShader() {
     }
 
     // Вытягиваем ID атрибута из собранной программы
-    const char* attr_name = "vertexPosition";
-    Attrib_vertex = glGetAttribLocation(Program, attr_name);
+    Attrib_vertex = glGetAttribLocation(Program, "vertexPosition");
     if (Attrib_vertex == -1)
     {
-        std::cout << "could not bind attrib " << attr_name << std::endl;
+        std::cout << "could not bind attrib " << "vertexPosition" << std::endl;
         return;
     }
 
@@ -240,12 +335,13 @@ void Init() {
 
 
 void Draw() {
+    std::vector<GLuint> indices_position = { 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35 };
     // Устанавливаем шейдерную программу текущей
     glUseProgram(Program);
     // Привязываем вао
-    glBindVertexArray(VAO);
+    glBindVertexArray(VAO_position);
     // Передаем данные на видеокарту(рисуем)
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT,0);
+    glDrawElements(GL_TRIANGLES, indices_position.size(), GL_UNSIGNED_INT,0);
     glBindVertexArray(0);
     // Отключаем шейдерную программу
     glUseProgram(0);
@@ -265,8 +361,8 @@ void ReleaseShader() {
 void ReleaseVBO()
 {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glDeleteBuffers(1, &VBO);
-    glDeleteVertexArrays(1, &VAO);
+    glDeleteBuffers(1, &VBO_position);
+    glDeleteVertexArrays(1, &VAO_position);
 }
 
 void Release() {

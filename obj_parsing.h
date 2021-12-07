@@ -1,4 +1,8 @@
 #pragma once
+#include <gl/glew.h>
+#include <SFML/OpenGL.hpp>
+#include <SFML/Window.hpp>
+#include <SFML/Graphics.hpp>
 
 int obj_parsing_main(std::string objFilename);
 
@@ -17,3 +21,5 @@ void ReleaseShader();
 void ReleaseVBO();
 
 void Release();
+
+void parseFile(std::string fileName);
