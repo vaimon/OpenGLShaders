@@ -19,7 +19,11 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="cube.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="obj_parsing.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="obj_parsing.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
