@@ -235,6 +235,7 @@ void ShaderLog(unsigned int shader)
 
 void InitBuffers()
 {
+    /*
     std::vector<GLfloat> vertices_position = {
          -0.5, -0.5, +0.5 ,  -0.5, +0.5, +0.5 ,  +0.5, +0.5, +0.5 ,
          +0.5, +0.5, +0.5 ,  +0.5, -0.5, +0.5 ,  -0.5, -0.5, +0.5 ,
@@ -252,7 +253,7 @@ void InitBuffers()
          -0.5, +0.5, +0.5 ,  -0.5, -0.5, -0.5 ,  -0.5, +0.5, -0.5 };
 
     std::vector<GLuint> indices_position = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35};
-
+    */
     glGenBuffers(1, &VBO_position);
     glGenVertexArrays(1, &VAO_position);
     glGenBuffers(1, &IBO_position);
@@ -272,7 +273,7 @@ void InitBuffers()
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_position.size() * sizeof(GLuint), indices_position.data(), GL_STATIC_DRAW);
 
     // 3. Устанавливаем указатели на вершинные атрибуты
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(0);
 
     //Отвязываем VAO
@@ -335,7 +336,7 @@ void Init() {
 
 
 void Draw() {
-    std::vector<GLuint> indices_position = { 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35 };
+    //std::vector<GLuint> indices_position = { 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35 };
     // Устанавливаем шейдерную программу текущей
     glUseProgram(Program);
     // Привязываем вао
