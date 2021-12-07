@@ -10,6 +10,12 @@ void checkOpenGLerror(int place = 0);
 
 void ShaderLog(unsigned int shader);
 
+void InitPositionBuffers();
+
+void InitNormaleBuffers();
+
+void InitTextureBuffers();
+
 void InitBuffers();
 
 void Init();
