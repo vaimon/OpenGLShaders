@@ -20,6 +20,17 @@ GLuint VAO;
 // ID IBO вершин
 GLuint IBO;
 
+GLuint Unif_lpos;
+GLuint Unif_lamb;
+GLuint Unif_ldiff;
+GLuint Unif_lspec;
+GLuint Unif_latt;
+GLuint Unif_viewpos;
+GLuint Unif_mamb;
+GLuint Unif_mdiff;
+GLuint Unif_mspec;
+GLuint Unif_mshine;
+
 // Вершина
 struct Vertex
 {
@@ -27,10 +38,25 @@ struct Vertex
     GLfloat y;
     GLfloat z;
 };
+struct Vert4
+{
+    GLfloat a;
+    GLfloat b;
+    GLfloat c;
+    GLfloat d;
+    
+};
 
 // Исходный код вершинного шейдера
 const char* VertexShaderSource = R"(
     #version 330 core
+// параметры точечного источника освещения
+uniform vec4 lposition;
+uniform vec4 lambient;
+uniform vec4 ldiffuse;
+uniform vec4 lspecular;
+uniform vec3 lattenuation;
+uniform vec3 viewPosition;
 
     // Координаты вершины. Атрибут, инициализируется через буфер.
     in vec3 vertexPosition;
@@ -41,7 +67,12 @@ const char* VertexShaderSource = R"(
     
     out vec2 vTextureCoordinate;
 
-    out vec3 vColor; 
+   // out vec3 vColor; 
+
+out vec3 vnormal;
+out vec3 vlightDir;
+out vec3 vviewDir;
+out float vdistance;
 
     void main() {
         float x_angle = -1;
@@ -58,9 +89,19 @@ const char* VertexShaderSource = R"(
             -sin(y_angle), 0, cos(y_angle)
         );
 
-        vTextureCoordinate = vertexTextureCoords;
+      vec4 vertex=vec4 (position, 1.0 );
+
+       vec4 lightDir_1=lposition − vertex;
+     
+
+       vTextureCoordinate = vertexTextureCoords;
+       vnormal=vertexNormale;
+       vlightDir=vec3(lightDir_1);
+       vviewDir=viewPosition-vertex;
+       vdistance=length(lightDir);
+
         // TODO: надо переделать во всякие освещательные штуки
-        vColor = vertexNormale;
+        //vColor = vertexNormale;
 
         // Присваиваем вершину волшебной переменной gl_Position
         gl_Position = vec4(position, 1.0);
@@ -70,16 +111,48 @@ const char* VertexShaderSource = R"(
 // Исходный код фрагментного шейдера
 const char* FragShaderSource = R"(
     #version 330 core
+// параметры точечного источника освещения
+uniform vec4 lposition;
+uniform vec4 lambient;
+uniform vec4 ldiffuse;
+uniform vec4 lspecular;
+uniform vec3 lattenuation;
+uniform vec3 viewPosition;
+uniform vec4 mambient;
+uniform vec4 mdiffuse;
+uniform vec4 mspecular;
+uniform float mshininess;
 
-    in vec2 vTextureCoordinate;
-
-    in vec3 vColor;
+in vec2 vTextureCoordinate;
+in vec3 vnormal;
+in vec3 vlightDir;
+in vec3 vviewDir;
+in float vdistance;
+   // in vec3 vColor;
 
     // Цвет, который будем отрисовывать
     out vec4 color;
 
     void main() {
-       color = vec4(vColor, 1);
+/*vec3 normal=normalize (vnormal );
+//vec3 lightDir=normalize ( vlightDir );
+//vec3 viewDir=normalize ( vviewDir );
+
+//float attenuation =1.0 / ( lattenuation[0] +
+//lattenuation[1] ∗ vdistance +
+//lattenuation[2] ∗ vdistance ∗ vdistance);
+
+//color+= mambient ∗ lambient ∗ attenuation;
+//добавление рассеянного света
+//float Ndot= max( dot ( vnormal , vlightDir) , 0.0);
+//color+= mdiffuse ∗ ldiffuse ∗ Ndot ∗ attenuation;
+
+//добавление отраженного света
+//float RdotVpow= max ( pow(dot( reflect(−vlightDir, vnormal ) , vviewDir) ,mshininess ) , 0.0 );
+//color+=mspecular ∗ lspecular ∗ RdotVpow ∗ attenuation;
+
+
+       color = vec4( vnormal, 1);
     }
 )";
 
@@ -178,6 +251,17 @@ void parseFile(std::string fileName) {
     }
 }
 
+Vert4 lposition = Vert4{ -1, 0, -0.5,1.0 };
+Vert4 lambient = Vert4{ 0.4, 0.7, 0.2,1.0 };
+Vert4 ldiffuse = Vert4{ 0.5, 0.0, 0.0, 1.0 };
+Vert4 lspecular = Vert4{ 0.7, 0.7, 0.0, 1.0 };
+Vertex lattenuation = Vertex{ 1.0,0.0,1.0 };//конст, лин, кв
+Vertex viewPosition = Vertex{ 0.0, 0.0, 1.0 };
+Vert4 mambient = Vert4{ 0.05,0.05,0.06,1.0 };
+Vert4 mdiffuse = Vert4{ 0.18,0.17,0.22,1.0 };
+Vert4 mspecular = Vert4{ 0.33,0.32,0.36,1.0 };
+float mshininess = 0.3;
+
 int obj_parsing_main(std::string objFilename) {
     sf::Window window(sf::VideoMode(700, 700), "My OpenGL window", sf::Style::Default, sf::ContextSettings(24));
     window.setVerticalSyncEnabled(true);
@@ -253,6 +337,17 @@ void InitPositionBuffers()
     glGenBuffers(1, &VBO);
     glGenBuffers(1, &IBO);
 
+    glUniform4f(Unif_lpos, lposition.a, lposition.b, lposition.c, lposition.d); 
+    glUniform4f(Unif_lamb, lambient.a, lambient.b, lambient.c, lambient.d);
+    glUniform4f(Unif_ldiff, ldiffuse.a, ldiffuse.b, ldiffuse.c, ldiffuse.d);
+    glUniform4f(Unif_lspec, lspecular.a, lspecular.b, lspecular.c, lspecular.d);
+    glUniform3f(Unif_latt, lattenuation.x, lattenuation.y, lattenuation.z);
+    glUniform3f(Unif_viewpos, viewPosition.x, viewPosition.y, viewPosition.z);
+    glUniform4f(Unif_mamb, mambient.a, mambient.b, mambient.c, mambient.d);
+    glUniform4f(Unif_mdiff, mdiffuse.a, mdiffuse.b, mdiffuse.c, mdiffuse.d);
+    glUniform4f(Unif_mspec, mspecular.a, mspecular.b, mspecular.c, mspecular.d);
+    glUniform1f(Unif_mshine, mshininess);
+
     //Привязываем VAO
     glBindVertexArray(VAO);
 
@@ -284,6 +379,7 @@ void InitPositionBuffers()
 void InitShader() {
     // Создаем вершинный шейдер
     GLuint vShader = glCreateShader(GL_VERTEX_SHADER);
+    
     // Передаем исходный код
     glShaderSource(vShader, 1, &VertexShaderSource, NULL);
     // Компилируем шейдер
@@ -315,7 +411,76 @@ void InitShader() {
         std::cout << "error attach shaders \n";
         return;
     }
-
+    const char* unif_name = "lposition";
+    Unif_lpos = glGetUniformLocation(Program, unif_name);
+    if (Unif_lpos < -1)
+    {
+        std::cout << "could not bind uniform " << unif_name << std::endl;
+        return;
+    }
+     unif_name = "lambient";
+    Unif_lamb = glGetUniformLocation(Program, unif_name);
+    if (Unif_lamb < -1)
+    {
+        std::cout << "could not bind uniform " << unif_name << std::endl;
+        return;
+    }
+    unif_name = "ldiffuse";
+    Unif_ldiff = glGetUniformLocation(Program, unif_name);
+    if (Unif_ldiff < -1)
+    {
+        std::cout << "could not bind uniform " << unif_name << std::endl;
+        return;
+    }
+     unif_name = "lspecular";
+    Unif_lspec = glGetUniformLocation(Program, unif_name);
+    if (Unif_lspec < -1)
+    {
+        std::cout << "could not bind uniform " << unif_name << std::endl;
+        return;
+    }
+    unif_name = "lattenuation";
+    Unif_latt = glGetUniformLocation(Program, unif_name);
+    if (Unif_latt < -1)
+    {
+        std::cout << "could not bind uniform " << unif_name << std::endl;
+        return;
+    }
+     unif_name = "viewPosition";
+    Unif_viewpos = glGetUniformLocation(Program, unif_name);
+    if (Unif_viewpos < -1)
+    {
+        std::cout << "could not bind uniform " << unif_name << std::endl;
+        return;
+    }
+     unif_name = "mambient";
+    Unif_mamb = glGetUniformLocation(Program, unif_name); 
+    if (Unif_mamb < -1)
+    {
+        std::cout << "could not bind uniform " << unif_name << std::endl;
+        return;
+    }
+   unif_name = "mdiffuse";
+    Unif_mdiff = glGetUniformLocation(Program, unif_name);
+    if (Unif_mdiff< -1)
+    {
+        std::cout << "could not bind uniform " << unif_name << std::endl;
+        return;
+    }
+     unif_name = "mspecular";
+    Unif_mspec = glGetUniformLocation(Program, unif_name);
+    if (Unif_mspec < -1)
+    {
+        std::cout << "could not bind uniform " << unif_name << std::endl;
+        return;
+    }
+    unif_name = "mshininess";
+    Unif_mshine = glGetUniformLocation(Program, unif_name);
+    if (Unif_mshine < -1)
+    {
+        std::cout << "could not bind uniform " << unif_name << std::endl;
+        return;
+    }
     checkOpenGLerror(2);
 }
 
