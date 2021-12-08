@@ -12,10 +12,6 @@ void ShaderLog(unsigned int shader);
 
 void InitPositionBuffers();
 
-void InitNormaleBuffers();
-
-void InitTextureBuffers();
-
 void InitBuffers();
 
 void Init();

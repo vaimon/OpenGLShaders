@@ -3,7 +3,7 @@
 
 
 int main() {
-	switch (4) {
+	switch (6) {
 	case 1: obj_parsing_main(".\\shapes\\cube.obj"); return 0;
 	case 2: obj_parsing_main(".\\shapes\\tetrahedron.obj"); return 0;
 	case 3: obj_parsing_main(".\\shapes\\dodecahedron.obj"); return 0;
@@ -12,5 +12,5 @@ int main() {
 	case 6: obj_parsing_main(".\\shapes\\torus.obj"); return 0;
 	}
 	
-	return 0;
+	return 1;
 }

@@ -12,25 +12,13 @@
 GLuint Program;
 
 // ID VBO вершин
-GLuint VBO_position;
-// ID VBO цвета
-GLuint VBO_normale;
-// ID VBO вершин
-GLuint VBO_texture;
+GLuint VBO;
 
 // ID VAO вершин
-GLuint VAO_position;
-// ID VAO цвета
-GLuint VAO_normale;
-// ID VAO вершин
-GLuint VAO_texture;
+GLuint VAO;
 
 // ID IBO вершин
-GLuint IBO_position;
-// ID IBO цвета
-GLuint IBO_normale;
-// ID IBO вершин
-GLuint IBO_texture;
+GLuint IBO;
 
 // Вершина
 struct Vertex
@@ -95,13 +83,9 @@ const char* FragShaderSource = R"(
     }
 )";
 
-std::vector<GLfloat> vertices_position {};
-std::vector<GLfloat> vertices_normale {};
-std::vector<GLfloat> vertices_texture{};
+std::vector<GLfloat> vertices {};
 
-std::vector<GLuint>  indices_position {};
-std::vector<GLuint> indices_normale{};
-std::vector<GLuint> indices_texture{};
+std::vector<GLuint>  indices {};
 
 std::vector<std::string> split(const std::string& s, char delim) {
     std::stringstream ss(s);
@@ -122,6 +106,11 @@ void parseFile(std::string fileName) {
         throw std::exception("File cannot be opened");
     }
 
+    std::vector<std::vector<float>> v{};
+    std::vector<std::vector<float>> vt{};
+    std::vector<std::vector<float>> vn{};
+
+    std::vector <std::string> indexAccordance{};
     std::string line;
     while (std::getline(obj, line))
     {
@@ -130,33 +119,57 @@ void parseFile(std::string fileName) {
         iss >> type;
         if (type == "v") {
             auto vertex = split(line, ' ');
+            std::vector<float> cv{};
             for (size_t j = 1; j < vertex.size(); j++)
             {
-                vertices_position.push_back(std::stof(vertex[j]));
+                cv.push_back(std::stof(vertex[j]));
             }
+            v.push_back(cv);
         }
         else if (type == "vn") {
             auto normale = split(line, ' ');
+            std::vector<float> cvn{};
             for (size_t j = 1; j < normale.size(); j++)
             {
-                vertices_normale.push_back(std::stof(normale[j]));
+                cvn.push_back(std::stof(normale[j]));
             }
+            vn.push_back(cvn);
         }
         else if (type == "vt") {
             auto texture = split(line, ' ');
+            std::vector<float> cvt{};
             for (size_t j = 1; j < texture.size(); j++)
             {
-                vertices_texture.push_back(std::stof(texture[j]));
+                cvt.push_back(std::stof(texture[j]));
             }
+            vt.push_back(cvt);
         }
         else if (type == "f") {
             auto splitted = split(line, ' ');
             for (size_t i = 1; i < splitted.size(); i++)
             {
+                auto it = std::find(indexAccordance.begin(), indexAccordance.end(), splitted[i]);
+                if (it == indexAccordance.end()) {
+                    indexAccordance.push_back(splitted[i]);
+                    indices.push_back(indexAccordance.size() - 1);
+                }
+                else {
+                    indices.push_back(std::distance(indexAccordance.begin(),it));
+                    continue;
+                }
                 auto triplet = split(splitted[i], '/');
-                indices_position.push_back(std::stoi(triplet[0]) - 1);
-                indices_texture.push_back(std::stoi(triplet[1]) - 1);
-                indices_normale.push_back(std::stoi(triplet[2]) - 1);
+                int positionIndex = std::stoi(triplet[0]) - 1;
+                for (int j = 0; j < 3; j++) {
+                    vertices.push_back(v[positionIndex][j]);
+                }
+                int normaleIndex = std::stoi(triplet[2]) - 1;
+                for (int j = 0; j < 3; j++) {
+                    vertices.push_back(vn[normaleIndex][j]);
+                }
+                int textureIndex = std::stoi(triplet[1]) - 1;
+                for (int j = 0; j < 2; j++) {
+                    vertices.push_back(vt[textureIndex][j]);
+                }
             }
         }
         else {
@@ -231,92 +244,38 @@ void ShaderLog(unsigned int shader)
 
 void InitBuffers() {
     InitPositionBuffers();
-    InitNormaleBuffers();
-    InitTextureBuffers();
 }
 
 void InitPositionBuffers()
 {
-    glGenBuffers(1, &VBO_position);
-    glGenVertexArrays(1, &VAO_position);
-    glGenBuffers(1, &IBO_position);
-    
+    glGenVertexArrays(1, &VAO);
+
+    glGenBuffers(1, &VBO);
+    glGenBuffers(1, &IBO);
 
     //Привязываем VAO
-    glBindVertexArray(VAO_position);
+    glBindVertexArray(VAO);
 
-    
-    //glEnableVertexAttribArray(0);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_position);
-    glBufferData(GL_ARRAY_BUFFER, vertices_position.size() * sizeof(GLfloat), vertices_position.data(), GL_STATIC_DRAW);
-
-    // Копируем наши индексы в в буфер для OpenGL
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO_position);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_position.size() * sizeof(GLuint), indices_position.data(), GL_STATIC_DRAW);
-
-    // 3. Устанавливаем указатели на вершинные атрибуты
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(0);
-
-    //Отвязываем VAO
-    glBindVertexArray(0);
-    checkOpenGLerror(1);
-}
-
-void InitTextureBuffers()
-{
-    glGenBuffers(1, &VBO_texture);
-    glGenVertexArrays(1, &VAO_texture);
-    glGenBuffers(1, &IBO_texture);
-
-
-    //Привязываем VAO
-    glBindVertexArray(VAO_texture);
-
-
-    //glEnableVertexAttribArray(0);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_texture);
-    glBufferData(GL_ARRAY_BUFFER, vertices_texture.size() * sizeof(GLfloat), vertices_texture.data(), GL_STATIC_DRAW);
-
-    // Копируем наши индексы в в буфер для OpenGL
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO_texture);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_texture.size() * sizeof(GLuint), indices_texture.data(), GL_STATIC_DRAW);
-
-    // 3. Устанавливаем указатели на вершинные атрибуты
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
 
-    //Отвязываем VAO
-    glBindVertexArray(0);
-    checkOpenGLerror(1);
-}
-
-void InitNormaleBuffers()
-{
-    glGenBuffers(1, &VBO_normale);
-    glGenVertexArrays(1, &VAO_normale);
-    glGenBuffers(1, &IBO_normale);
-
-
-    //Привязываем VAO
-    glBindVertexArray(VAO_normale);
-
-
-    //glEnableVertexAttribArray(0);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_normale);
-    glBufferData(GL_ARRAY_BUFFER, vertices_normale.size() * sizeof(GLfloat), vertices_normale.data(), GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(GLfloat), vertices.data(), GL_STATIC_DRAW);
 
     // Копируем наши индексы в в буфер для OpenGL
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO_normale);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_normale.size() * sizeof(GLuint), indices_normale.data(), GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
 
     // 3. Устанавливаем указатели на вершинные атрибуты
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-    glEnableVertexAttribArray(1);
-
+    // Атрибут с координатами
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0);
+    // Атрибут с цветом
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+    // Атрибут с текстурой
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(6 * sizeof(GLfloat)));
+    //glEnableVertexAttribArray(0);
+    
     //Отвязываем VAO
     glBindVertexArray(0);
     checkOpenGLerror(1);
@@ -372,11 +331,9 @@ void Draw() {
     // Устанавливаем шейдерную программу текущей
     glUseProgram(Program);
     // Привязываем вао
-    glBindVertexArray(VAO_position);
-    glBindVertexArray(VAO_normale);
-    glBindVertexArray(VAO_texture);
+    glBindVertexArray(VAO);
     // Передаем данные на видеокарту(рисуем)
-    glDrawElements(GL_TRIANGLES, indices_position.size(), GL_UNSIGNED_INT,0);
+    glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT,0);
     glBindVertexArray(0);
     // Отключаем шейдерную программу
     glUseProgram(0);
@@ -396,8 +353,8 @@ void ReleaseShader() {
 void ReleaseVBO()
 {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glDeleteBuffers(1, &VBO_position);
-    glDeleteVertexArrays(1, &VAO_position);
+    glDeleteBuffers(1, &VBO);
+    glDeleteVertexArrays(1, &VAO);
 }
 
 void Release() {
