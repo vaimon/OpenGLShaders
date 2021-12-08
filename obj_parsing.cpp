@@ -19,20 +19,7 @@ GLuint VAO;
 
 // ID IBO вершин
 GLuint IBO;
-GLuint Unif_lamb;
-GLuint Unif_lpos;
-GLuint Unif_ldiff;
 
-float lposition[4] = { 1.0f,0.5f,0.5f,1.0f };
-float lambient[4] = { 0.4f, 0.7f, 0.2f, 1.0f };
-float ldiffuse[4] = { 0.5f, 0.0f, 0.0f, 1.0f };
-float lspecular[4] = { 0.7f, 0.7f, 0.0f, 1.0f };
-float lattenuation[3] = { 1.0f,0.0f,1.0f };//конст, лин, кв
-float viewPosition[3] = { 0.0f, 0.0f, 1.0f };
-float mambient[4] = { 0.05f,0.05f,0.06f,1.0f };
-float mdiffuse[4] = { 0.18f,0.17f,0.22f,1.0f };
-float mspecular[4] = { 0.33f,0.32f,0.36f,1.0f };
-float mshininess = 0.3f;
 
 // Вершина
 struct Vertex
@@ -42,28 +29,15 @@ struct Vertex
     GLfloat z;
 };
 
-// Исходный код вершинного шейдера
 const char* VertexShaderSource = R"(
     #version 330 core
-
-uniform vec4 lposition;
-uniform vec4 lambient;
-
-//uniform vec4 lspecular;
-//uniform vec3 lattenuation;
-//uniform vec3 viewPosition;
     // Координаты вершины. Атрибут, инициализируется через буфер.
     in vec3 vertexPosition;
-
     in vec3 vertexNormale;
-
     in vec2 vertexTextureCoords;
     
     out vec2 vTextureCoordinate;
-    out vec3 vnormal;
-    //out vec3 vlightDir;
-    //out vec4 vColor; 
-
+    out vec3 vColor; 
     void main() {
         float x_angle = -1;
         float y_angle = 1;
@@ -78,35 +52,22 @@ uniform vec4 lambient;
             0, 1, 0,
             -sin(y_angle), 0, cos(y_angle)
         );
-
         vTextureCoordinate = vertexTextureCoords;
-        vnormal=vertexNormale;
-        vec4 vpos = vec4(vertexPosition, 1.0);
-
-        //vec4 lightDir_1= lposition − vpos;
-        //vlightDir=vec3(lightDir_1);
         // TODO: надо переделать во всякие освещательные штуки
-       // vColor = cococo;
-
+        vColor = vertexNormale;
         // Присваиваем вершину волшебной переменной gl_Position
         gl_Position = vec4(position, 1.0);
     }
 )";
-
 // Исходный код фрагментного шейдера
 const char* FragShaderSource = R"(
     #version 330 core
-   uniform vec4 lambient;
-
     in vec2 vTextureCoordinate;
- 
-   // in vec4 vColor;
-
+    in vec3 vColor;
     // Цвет, который будем отрисовывать
     out vec4 color;
-
     void main() {
-       color = lambient;
+       color = vec4(vColor, 1);
     }
 )";
 
@@ -343,27 +304,7 @@ void InitShader() {
         return;
     }
    
-    const char* unif_name = "lposition";
-    Unif_lpos = glGetUniformLocation(Program, unif_name);
-    if (Unif_lpos == -1)
-    {
-        std::cout << "could not bind uniform " << unif_name << std::endl;
-        return;
-    }
-    unif_name = "lambient";
-    Unif_lamb = glGetUniformLocation(Program, unif_name);
-    if (Unif_lamb == -1)
-    {
-        std::cout << "could not bind uniform " << unif_name << std::endl;
-        return;
-    }
-    unif_name = "ldiffuse";
-    Unif_ldiff = glGetUniformLocation(Program, unif_name);
-    if (Unif_ldiff == -1)
-    {
-        std::cout << "could not bind uniform " << unif_name << std::endl;
-        return;
-    }
+ 
     checkOpenGLerror(2);
 }
 
@@ -377,11 +318,7 @@ void Init() {
 
 void Draw() {
     // Устанавливаем шейдерную программу текущей
-    glUseProgram(Program);
-    glUniform4fv(Unif_lamb, 1, lambient);
-    glUniform4fv(Unif_lpos, 1,lposition);
-    //glUniform4fv(Unif_ldiff, 1, ldiffuse);
-    
+    glUseProgram(Program);   
     // Привязываем вао
     glBindVertexArray(VAO);
     // Передаем данные на видеокарту(рисуем)
