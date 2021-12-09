@@ -19,11 +19,14 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="lighting.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="obj_parsing.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="lighting.h" />
     <ClInclude Include="obj_parsing.h" />
+    <ClInclude Include="switcher.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
