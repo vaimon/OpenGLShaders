@@ -1,4 +1,5 @@
-
+#include "switcher.h"
+#ifdef OBJ_PARSING
 
 #include <iostream>
 #include <fstream>
@@ -166,7 +167,7 @@ void parseFile(std::string fileName) {
     }
 }
 
-int obj_parsing_main(std::string objFilename) {
+int task_main(std::string objFilename) {
     sf::Window window(sf::VideoMode(700, 700), "My OpenGL window", sf::Style::Default, sf::ContextSettings(24));
     window.setVerticalSyncEnabled(true);
 
@@ -350,3 +351,5 @@ void Release() {
     ReleaseShader();
     ReleaseVBO();
 }
+
+#endif

@@ -1,16 +1,30 @@
+
 #include <string>
+#include "switcher.h"
+
+#ifdef OBJ_PARSING
 #include "obj_parsing.h"
+#endif
+
+#ifdef LIGHTING
+#include "lighting.h"
+#endif
+
+
 
 
 int main() {
-	switch (1) {
-	case 1: obj_parsing_main(".\\shapes\\cube.obj"); return 0;
-	case 2: obj_parsing_main(".\\shapes\\tetrahedron.obj"); return 0;
-	case 3: obj_parsing_main(".\\shapes\\dodecahedron.obj"); return 0;
-	case 4: obj_parsing_main(".\\shapes\\octahedron.obj"); return 0;
-	case 5: obj_parsing_main(".\\shapes\\sphere.obj"); return 0;
-	case 6: obj_parsing_main(".\\shapes\\torus.obj"); return 0;
+	int figuretype = 1;
+
+	switch (figuretype) {
+	case 1: task_main(".\\shapes\\cube.obj"); return 0;
+	case 2: task_main(".\\shapes\\tetrahedron.obj"); return 0;
+	case 3: task_main(".\\shapes\\dodecahedron.obj"); return 0;
+	case 4: task_main(".\\shapes\\octahedron.obj"); return 0;
+	case 5: task_main(".\\shapes\\sphere.obj"); return 0;
+	case 6: task_main(".\\shapes\\torus.obj"); return 0;
 	}
-	
+
+
 	return 1;
 }
