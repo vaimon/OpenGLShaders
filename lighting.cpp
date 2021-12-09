@@ -20,9 +20,10 @@ GLuint VAO;
 
 // ID IBO вершин
 GLuint IBO;
-GLuint Unif_lamb;
-GLuint Unif_lpos;
-GLuint Unif_ldiff;
+
+GLint Unif_lamb;
+GLint Unif_lpos;
+GLint Unif_ldiff;
 
 float lpos[4] = { 1.0f,0.5f,0.5f,1.0f };
 float lambient[4] = { 0.4f, 0.7f, 0.2f, 1.0f };
@@ -47,9 +48,6 @@ struct Vertex
 const char* VertexShaderSource = R"(
 #version 330 core
 
-
-uniform vec4 lambient;
-
 //uniform vec4 lspecular;
 //uniform vec3 lattenuation;
 //uniform vec3 viewPosition;
@@ -65,10 +63,13 @@ out vec3 vnormal;
 //out vec3 vlightDir;
 //out vec4 vColor;
 
+uniform vec4 lpos;
+uniform vec4 lambient;
+
 void main() {
 float x_angle = -1;
 float y_angle = 1;
-
+vec4 temp = lpos;
 // Поворачиваем вершину
 vec3 position = vertexPosition * mat3(
 1, 0, 0,
@@ -97,6 +98,7 @@ gl_Position = vec4(position, 1.0);
 // Исходный код фрагментного шейдера
 const char* FragShaderSource = R"(
 #version 330 core
+
 uniform vec4 lpos;
 uniform vec4 lambient;
 
@@ -347,6 +349,7 @@ void InitShader() {
 		return;
 	}
 
+
 	const char* unif_name = "lpos";
 	Unif_lpos = glGetUniformLocation(Program, unif_name);
 	if (Unif_lpos == -1)
@@ -382,8 +385,8 @@ void Init() {
 void Draw() {
 	// Устанавливаем шейдерную программу текущей
 	glUseProgram(Program);
-	glUniform4fv(Unif_lamb, 1, lambient);
-	glUniform4fv(Unif_lpos, 1, lpos);
+	glUniform4fv(Unif_lamb, 4, lambient);
+	glUniform4fv(Unif_lpos, 4, lpos);
 	//glUniform4fv(Unif_ldiff, 1, ldiffuse);
 
 	// Привязываем вао
