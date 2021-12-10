@@ -1,3 +1,3 @@
-#define LIGHTING
+//#define LIGHTING
 //#define OBJ_PARSING
-//#define TEXTURING
+#define TEXTURING
