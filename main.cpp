@@ -10,9 +10,7 @@
 #include "lighting.h"
 #endif
 
-#ifdef TEXTURING
-#include "texturing.h"
-#endif
+
 
 
 int main() {
