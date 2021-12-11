@@ -18,11 +18,19 @@
 #include "Blinn.h"
 #endif
 
+#ifdef TOONSHADING
+#include "ToonShading.h"
+#endif
+
+#ifdef OREN
+#include "Oren.h"
+#endif
+
 
 
 
 int main() {
-	int figuretype = 6;
+	int figuretype = 1;
 
 	switch (figuretype) {
 	case 1: task_main(".\\shapes\\cube.obj"); return 0;
