@@ -21,9 +21,10 @@ GLuint VAO;
 // ID IBO вершин
 GLuint IBO;
 
-GLint Unif_lamb;
-GLint Unif_lpos;
-GLint Unif_ldiff;
+
+GLuint Unif_posx;
+GLuint Unif_posy;
+GLuint Unif_posz;
 
 float lpos[4] = { 1.0f,0.5f,0.5f,1.0f };
 float lambient[4] = { 0.4f, 0.7f, 0.2f, 1.0f };
@@ -45,31 +46,26 @@ struct Vertex
 };
 
 // Исходный код вершинного шейдера
+// Исходный код вершинного шейдера
 const char* VertexShaderSource = R"(
 #version 330 core
-
-//uniform vec4 lspecular;
-//uniform vec3 lattenuation;
-//uniform vec3 viewPosition;
+uniform float xpos;
+uniform float ypos;
+uniform float zpos;
 // Координаты вершины. Атрибут, инициализируется через буфер.
 in vec3 vertexPosition;
-
 in vec3 vertexNormale;
-
 in vec2 vertexTextureCoords;
 
+out vec3 lightp;
 out vec2 vTextureCoordinate;
 out vec3 vnormal;
-//out vec3 vlightDir;
-//out vec4 vColor;
 
-uniform vec4 lpos;
-uniform vec4 lambient;
 
 void main() {
 float x_angle = -1;
 float y_angle = 1;
-vec4 temp = lpos;
+
 // Поворачиваем вершину
 vec3 position = vertexPosition * mat3(
 1, 0, 0,
@@ -80,18 +76,35 @@ cos(y_angle), 0, sin(y_angle),
 0, 1, 0,
 -sin(y_angle), 0, cos(y_angle)
 );
-
+mat3 aff=mat3(
+1, 0, 0,
+0, cos(x_angle), -sin(x_angle),
+0, sin(x_angle), cos(x_angle)
+) * mat3(
+cos(y_angle), 0, sin(y_angle),
+0, 1, 0,
+-sin(y_angle), 0, cos(y_angle)
+);
+// Поворачиваем вектор
+//vec3 newNormale = vertexNormale * mat3(
+//1, 0, 0,
+//0, cos(x_angle), -sin(x_angle),
+//0, sin(x_angle), cos(x_angle)
+//) * mat3(
+//cos(y_angle), 0, sin(y_angle),
+//0, 1, 0,
+//-sin(y_angle), 0, cos(y_angle)
+//);
+vec3 newNormale = mat3(transpose(inverse(aff))) *  vertexNormale;
 vTextureCoordinate = vertexTextureCoords;
-vnormal=vertexNormale;
-vec4 vpos = vec4(vertexPosition, 1.0);
 
-//vec4 lightDir_1= lposition − vpos;
-//vlightDir=vec3(lightDir_1);
-// TODO: надо переделать во всякие освещательные штуки
-// vColor = cococo;
+vec3 lposition=vec3(xpos,ypos,zpos);
 
 // Присваиваем вершину волшебной переменной gl_Position
-gl_Position = vec4(position, 1.0);
+vec3 temp=lposition;
+ gl_Position = vec4(position.x, position.y, (position.z * 0.1) + 0.5, 1.0);
+vnormal=newNormale;
+lightp=  temp-vertexPosition;
 }
 )";
 
@@ -99,20 +112,37 @@ gl_Position = vec4(position, 1.0);
 const char* FragShaderSource = R"(
 #version 330 core
 
-uniform vec4 lpos;
-uniform vec4 lambient;
-
+in vec3 vnormal;
+in vec3 lightp;
+in vec3 vPosition;
 in vec2 vTextureCoordinate;
 
-// in vec4 vColor;
 
 // Цвет, который будем отрисовывать
 out vec4 color;
+const vec4 diffColor = vec4 ( 0.5, 0.0, 0.0, 1.0 );
+
 
 void main() {
-color = lambient;
+   vec3 n2   = normalize ( vnormal );
+    vec3 l2   = normalize ( lightp );
+    vec4 diff = diffColor * max ( dot ( n2, l2 ), 0.0 );
+    color = diff;
 }
 )";
+float xpos = 1.0f;
+float ypos = 1.0f;
+float zpos = 1.0f;
+void ChangePos(float x, float y, float z)
+{
+	if (xpos<1.0f || xpos > -0.9f)
+		xpos += x;
+	if (ypos < 1.0f || ypos > -0.9f)
+		ypos += y;
+	if (zpos < 1.0f || zpos > -0.9f)
+		zpos += z;
+
+}
 
 std::vector<GLfloat> vertices{};
 
@@ -137,9 +167,9 @@ void parseFile(std::string fileName) {
 		throw std::exception("File cannot be opened");
 	}
 
-	std::vector < std::vector < float>> v{};
-	std::vector < std::vector < float>>vt{};
-	std::vector < std::vector < float>> vn{};
+	std::vector<std::vector<float>> v{};
+	std::vector<std::vector<float>> vt{};
+	std::vector<std::vector<float>> vn{};
 
 	std::vector <std::string> indexAccordance{};
 	std::string line;
@@ -179,15 +209,15 @@ void parseFile(std::string fileName) {
 			auto splitted = split(line, ' ');
 			for (size_t i = 1; i < splitted.size(); i++)
 			{
-				auto it = std::find(indexAccordance.begin(), indexAccordance.end(), splitted[i]);
-				if (it == indexAccordance.end()) {
-					indexAccordance.push_back(splitted[i]);
-					indices.push_back(indexAccordance.size() - 1);
-				}
-				else {
-					indices.push_back(std::distance(indexAccordance.begin(), it));
-					continue;
-				}
+				//auto it = std::find(indexAccordance.begin(), indexAccordance.end(), splitted[i]);
+				//if (it == indexAccordance.end()) {
+				//    indexAccordance.push_back(splitted[i]);
+				//    indices.push_back(indexAccordance.size() - 1);
+				//}
+				//else {
+				//   indices.push_back(std::distance(indexAccordance.begin(),it));
+				//    continue;
+				//}
 				auto triplet = split(splitted[i], '/');
 				int positionIndex = std::stoi(triplet[0]) - 1;
 				for (int j = 0; j < 3; j++) {
@@ -207,6 +237,7 @@ void parseFile(std::string fileName) {
 			continue;
 		}
 	}
+	return;
 }
 
 int task_main(std::string objFilename) {
@@ -228,6 +259,19 @@ int task_main(std::string objFilename) {
 			}
 			else if (event.type == sf::Event::Resized) {
 				//glViewport(0, 0, event.size.width, event.size.height);
+			}
+			else if (event.type == sf::Event::KeyPressed) {
+				switch (event.key.code) {
+				case (sf::Keyboard::Left):ChangePos(-0.1f, 0.0f, 0.0f); break;
+				case (sf::Keyboard::Right): ChangePos(0.1f, 0.0f, 0.0f); break;
+				case (sf::Keyboard::L):ChangePos(0.0f, 0.0f, 0.1f); break;
+				case (sf::Keyboard::K):ChangePos(0.0f, 0.0f, -0.1f); break;
+				case (sf::Keyboard::Up):ChangePos(0.0f, 0.1f, 0.0f); break;
+				case (sf::Keyboard::Down):ChangePos(0.0f, -0.1f, 0.0f); break;
+
+
+				default: break;
+				}
 			}
 		}
 
@@ -282,33 +326,43 @@ void InitPositionBuffers()
 	glGenVertexArrays(1, &VAO);
 
 	glGenBuffers(1, &VBO);
-	glGenBuffers(1, &IBO);
+	/*glGenBuffers(1, &IBO);*/
 
 	//Привязываем VAO
 	glBindVertexArray(VAO);
 
-	glEnableVertexAttribArray(0);
-	glEnableVertexAttribArray(1);
-	glEnableVertexAttribArray(2);
+	auto i0 = glGetAttribLocation(Program, "vertexPosition");
+	auto i1 = glGetAttribLocation(Program, "vertexNormale");
+	auto i2 = glGetAttribLocation(Program, "vertexTextureCoords");
+
+	glEnableVertexAttribArray(i0);
+	glEnableVertexAttribArray(i1);
+	glEnableVertexAttribArray(i2);
 
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(GLfloat), vertices.data(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(GLfloat), &vertices[0], GL_STATIC_DRAW);
 
-	// Копируем наши индексы в в буфер для OpenGL
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
+	//// Копируем наши индексы в в буфер для OpenGL
+	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
+	//glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
 
 	// 3. Устанавливаем указатели на вершинные атрибуты
 	// Атрибут с координатами
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0);
+	glVertexAttribPointer(i0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0);
 	// Атрибут с цветом
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+	glVertexAttribPointer(i1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
 	// Атрибут с текстурой
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(6 * sizeof(GLfloat)));
+	glVertexAttribPointer(i2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(6 * sizeof(GLfloat)));
 	//glEnableVertexAttribArray(0);
+
+	std::cout << i0 << " " << i1 << " " << i2 << std::endl;
+	std::cout << vertices.size() << std::endl;
 
 	//Отвязываем VAO
 	glBindVertexArray(0);
+	glDisableVertexAttribArray(i0);
+	glDisableVertexAttribArray(i1);
+	glDisableVertexAttribArray(i2);
 	checkOpenGLerror(1);
 }
 
@@ -336,10 +390,8 @@ void InitShader() {
 	glAttachShader(Program, vShader);
 	glAttachShader(Program, fShader);
 
-	// Линкуем шейдерную
-
-	
-		glLinkProgram(Program);
+	// Линкуем шейдерную программу
+	glLinkProgram(Program);
 	// Проверяем статус сборки
 	int link_ok;
 	glGetProgramiv(Program, GL_LINK_STATUS, &link_ok);
@@ -348,9 +400,28 @@ void InitShader() {
 		std::cout << "error attach shaders \n";
 		return;
 	}
-
-
-	const char* unif_name = "lpos";
+	const char* unif_name = "xpos";
+	Unif_posx = glGetUniformLocation(Program, unif_name);
+	if (Unif_posx == -1)
+	{
+		std::cout << "could not bind uniform " << unif_name << std::endl;
+		return;
+	}
+	unif_name = "ypos";
+	Unif_posy = glGetUniformLocation(Program, unif_name);
+	if (Unif_posy == -1)
+	{
+		std::cout << "could not bind uniform " << unif_name << std::endl;
+		return;
+	}
+	unif_name = "zpos";
+	Unif_posz = glGetUniformLocation(Program, unif_name);
+	if (Unif_posz == -1)
+	{
+		std::cout << "could not bind uniform " << unif_name << std::endl;
+		return;
+	}
+	/*const char* unif_name = "lpos";
 	Unif_lpos = glGetUniformLocation(Program, unif_name);
 	if (Unif_lpos == -1)
 	{
@@ -370,7 +441,7 @@ void InitShader() {
 	{
 		std::cout << "could not bind uniform " <<unif_name << std::endl;
 		return;
-	}
+	}*/
 	checkOpenGLerror(2);
 }
 
@@ -385,18 +456,23 @@ void Init() {
 void Draw() {
 	// Устанавливаем шейдерную программу текущей
 	glUseProgram(Program);
-	glUniform4fv(Unif_lamb, 4, lambient);
-	glUniform4fv(Unif_lpos, 4, lpos);
+	//glUniform4fv(Unif_lamb, 4, lambient);
+	//glUniform4fv(Unif_lpos, 4, lpos);
 	//glUniform4fv(Unif_ldiff, 1, ldiffuse);
-
+	glUniform1f(Unif_posx, xpos);
+	glUniform1f(Unif_posy, ypos);
+	glUniform1f(Unif_posz, zpos);
 	// Привязываем вао
 	glBindVertexArray(VAO);
 	// Передаем данные на видеокарту(рисуем)
-	glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+	glDrawArrays(GL_TRIANGLES, 0, vertices.size());
 	glBindVertexArray(0);
 	// Отключаем шейдерную программу
 	glUseProgram(0);
 	checkOpenGLerror(3);
+
+	
+	
 }
 
 

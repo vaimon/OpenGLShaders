@@ -14,7 +14,7 @@
 
 
 int main() {
-	int figuretype = 1;
+	int figuretype = 3;
 
 	switch (figuretype) {
 	case 1: task_main(".\\shapes\\cube.obj"); return 0;
