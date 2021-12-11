@@ -61,11 +61,10 @@ const char* VertexShaderSource = R"(
             0, 1, 0,
             -sin(y_angle), 0, cos(y_angle)
         );
-        // ѕоворачиваем вершину
-        //vec3 position = vertexPosition;
+
         vTextureCoordinate = vertexTextureCoords;
-        // TODO: надо переделать во вс€кие освещательные штуки
         vColor = (vertexNormale + vec3(1.0, 1.0, 1.0)) * 0.5;
+
         // ѕрисваиваем вершину волшебной переменной gl_Position
         gl_Position = vec4(position.x, position.y, (position.z * 0.1) + 0.5, 1.0);
     }
@@ -181,7 +180,7 @@ void parseFile(std::string fileName) {
 }
 
 float reg = 0.05;
-//изменение угла поворота по ос€м
+// регулирование текстур
 void changeText(float regg) {
     if (reg + regg > 1 || reg + regg < 0)
         return;
