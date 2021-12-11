@@ -21,7 +21,10 @@
     <ClCompile Include="main.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
-    <ClCompile Include="lighting.cpp">
+    <ClCompile Include="lambert.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="phong.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
   </ItemGroup>
@@ -29,10 +32,13 @@
     <ClInclude Include="obj_parsing.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
-    <ClInclude Include="lighting.h">
+    <ClInclude Include="lambert.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
     <ClInclude Include="switcher.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="phong.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,5 +1,5 @@
 #include "switcher.h"
-#ifdef LIGHTING
+#ifdef PHONG
 
 #include <iostream>
 #include <fstream>
@@ -8,36 +8,37 @@
 #include "obj_parsing.h"
 
 
-// РџРµСЂРµРјРµРЅРЅС‹Рµ СЃ РёРЅРґРµРЅС‚РёС„РёРєР°С‚РѕСЂР°РјРё ID
-// ID С€РµР№РґРµСЂРЅРѕР№ РїСЂРѕРіСЂР°РјРјС‹
+// Переменные с индентификаторами ID
+// ID шейдерной программы
 GLuint Program;
 
-// ID VBO РІРµСЂС€РёРЅ
+// ID VBO вершин
 GLuint VBO;
 
-// ID VAO РІРµСЂС€РёРЅ
+// ID VAO вершин
 GLuint VAO;
 
-// ID IBO РІРµСЂС€РёРЅ
+// ID IBO вершин
 GLuint IBO;
 
 
 GLuint Unif_posx;
 GLuint Unif_posy;
 GLuint Unif_posz;
+GLuint Unif_eye;
 
-float lpos[4] = { 1.0f,0.5f,0.5f,1.0f };
+float eyePos[3] = {0.5f,0.5f,1.0f};
 float lambient[4] = { 0.4f, 0.7f, 0.2f, 1.0f };
 float ldiffuse[4] = { 0.5f, 0.0f, 0.0f, 1.0f };
 float lspecular[4] = { 0.7f, 0.7f, 0.0f, 1.0f };
-float lattenuation[3] = { 1.0f,0.0f,1.0f };//РєРѕРЅСЃС‚, Р»РёРЅ, РєРІ
+float lattenuation[3] = { 1.0f,0.0f,1.0f };//конст, лин, кв
 float viewPosition[3] = { 0.0f, 0.0f, 1.0f };
 float mambient[4] = { 0.05f,0.05f,0.06f,1.0f };
 float mdiffuse[4] = { 0.18f,0.17f,0.22f,1.0f };
 float mspecular[4] = { 0.33f,0.32f,0.36f,1.0f };
 float mshininess = 0.3f;
 
-// Р’РµСЂС€РёРЅР°
+// Вершина
 struct Vertex
 {
 	GLfloat x;
@@ -45,28 +46,31 @@ struct Vertex
 	GLfloat z;
 };
 
-// РСЃС…РѕРґРЅС‹Р№ РєРѕРґ РІРµСЂС€РёРЅРЅРѕРіРѕ С€РµР№РґРµСЂР°
-// РСЃС…РѕРґРЅС‹Р№ РєРѕРґ РІРµСЂС€РёРЅРЅРѕРіРѕ С€РµР№РґРµСЂР°
+// Исходный код вершинного шейдера
+// Исходный код вершинного шейдера
 const char* VertexShaderSource = R"(
 #version 330 core
 uniform float xpos;
 uniform float ypos;
 uniform float zpos;
-// РљРѕРѕСЂРґРёРЅР°С‚С‹ РІРµСЂС€РёРЅС‹. РђС‚СЂРёР±СѓС‚, РёРЅРёС†РёР°Р»РёР·РёСЂСѓРµС‚СЃСЏ С‡РµСЂРµР· Р±СѓС„РµСЂ.
+uniform vec3 eyePos;
+// Координаты вершины. Атрибут, инициализируется через буфер.
 in vec3 vertexPosition;
 in vec3 vertexNormale;
 in vec2 vertexTextureCoords;
 
-out vec3 lightp;
-out vec2 vTextureCoordinate;
-out vec3 vnormal;
 
+out vec2 vTextureCoordinate;
+out vec4 vPosition;
+out vec3 vnormal;
+out vec3 lightp;
+out vec3 vnew;
 
 void main() {
 float x_angle = -1;
 float y_angle = 1;
 
-// РџРѕРІРѕСЂР°С‡РёРІР°РµРј РІРµСЂС€РёРЅСѓ
+// Поворачиваем вершину
 vec3 position = vertexPosition * mat3(
 1, 0, 0,
 0, cos(x_angle), -sin(x_angle),
@@ -76,6 +80,7 @@ cos(y_angle), 0, sin(y_angle),
 0, 1, 0,
 -sin(y_angle), 0, cos(y_angle)
 );
+
 mat3 aff=mat3(
 1, 0, 0,
 0, cos(x_angle), -sin(x_angle),
@@ -85,49 +90,53 @@ cos(y_angle), 0, sin(y_angle),
 0, 1, 0,
 -sin(y_angle), 0, cos(y_angle)
 );
-// РџРѕРІРѕСЂР°С‡РёРІР°РµРј РІРµРєС‚РѕСЂ
-//vec3 newNormale = vertexNormale * mat3(
-//1, 0, 0,
-//0, cos(x_angle), -sin(x_angle),
-//0, sin(x_angle), cos(x_angle)
-//) * mat3(
-//cos(y_angle), 0, sin(y_angle),
-//0, 1, 0,
-//-sin(y_angle), 0, cos(y_angle)
-//);
+
 vec3 newNormale = mat3(transpose(inverse(aff))) *  vertexNormale;
 vTextureCoordinate = vertexTextureCoords;
 
-vec3 lposition=vec3(xpos,ypos,zpos);
+vec3 lposition = vec3(xpos,ypos,zpos);
 
-// РџСЂРёСЃРІР°РёРІР°РµРј РІРµСЂС€РёРЅСѓ РІРѕР»С€РµР±РЅРѕР№ РїРµСЂРµРјРµРЅРЅРѕР№ gl_Position
-vec3 temp=lposition;
+// Присваиваем вершину волшебной переменной gl_Position
+vec3 temp = lposition;
+vec3 temp1 = eyePos;
+vPosition = vec4(position.x, position.y, (position.z * 0.1) + 0.5, 1.0);
+vnormal = newNormale;
+lightp =  temp-position;
+vnew = temp1 - position; 
  gl_Position = vec4(position.x, position.y, (position.z * 0.1) + 0.5, 1.0);
-vnormal=newNormale;
-lightp=  temp-vertexPosition;
+ 
 }
 )";
 
-// РСЃС…РѕРґРЅС‹Р№ РєРѕРґ С„СЂР°РіРјРµРЅС‚РЅРѕРіРѕ С€РµР№РґРµСЂР°
+// Исходный код фрагментного шейдера
 const char* FragShaderSource = R"(
 #version 330 core
-
+in vec2 vTextureCoordinate;
+in vec4 vPosition;
 in vec3 vnormal;
 in vec3 lightp;
-in vec3 vPosition;
-in vec2 vTextureCoordinate;
+in vec3 vnew;
 
 
-// Р¦РІРµС‚, РєРѕС‚РѕСЂС‹Р№ Р±СѓРґРµРј РѕС‚СЂРёСЃРѕРІС‹РІР°С‚СЊ
+
+// Цвет, который будем отрисовывать
 out vec4 color;
-const vec4 diffColor = vec4 ( 0.5, 0.0, 0.0, 1.0 );
 
+
+const vec4  diffColor = vec4 ( 0.5f, 0.0f, 0.0f, 1.0f );
+const vec4  specColor = vec4 ( 0.7f, 0.7f, 0.0f, 1.0f);
+const float specPower = 30.0f;
 
 void main() {
-   vec3 n2   = normalize ( vnormal );
+    vec3 n2   = normalize ( vnormal );
     vec3 l2   = normalize ( lightp );
-    vec4 diff = diffColor * max ( dot ( n2, l2 ), 0.0 );
-    color = diff;
+    vec3 v2   = normalize ( vnew ); 
+    vec3 r    = reflect ( -v2, n2 );
+    vec4 diff = diffColor * max (dot(n2, l2),0.0f );
+    vec4 spec = specColor * pow (max(dot (l2, r), 0.0f ), specPower );
+    color= diff + spec;
+
+
 }
 )";
 float xpos = 1.0f;
@@ -246,7 +255,7 @@ int task_main(std::string objFilename) {
 
 	window.setActive(true);
 
-	// РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ glew
+	// Инициализация glew
 	glewInit();
 	parseFile(objFilename);
 	Init();
@@ -287,16 +296,16 @@ int task_main(std::string objFilename) {
 }
 
 
-// РџСЂРѕРІРµСЂРєР° РѕС€РёР±РѕРє OpenGL, РµСЃР»Рё РµСЃС‚СЊ С‚Рѕ РІС‹РІРѕРґ РІ РєРѕРЅСЃРѕР»СЊ С‚РёРї РѕС€РёР±РєРё
+// Проверка ошибок OpenGL, если есть то вывод в консоль тип ошибки
 void checkOpenGLerror(int place) {
 	GLenum errCode;
-	// РљРѕРґС‹ РѕС€РёР±РѕРє РјРѕР¶РЅРѕ СЃРјРѕС‚СЂРµС‚СЊ С‚СѓС‚
+	// Коды ошибок можно смотреть тут
 	// https://www.khronos.org/opengl/wiki/OpenGL_Error
 	if ((errCode = glGetError()) != GL_NO_ERROR)
 		std::cout << "OpenGl error in " << place << "!: " << errCode << std::endl;
 }
 
-// Р¤СѓРЅРєС†РёСЏ РїРµС‡Р°С‚Рё Р»РѕРіР° С€РµР№РґРµСЂР°
+// Функция печати лога шейдера
 void ShaderLog(unsigned int shader)
 {
 	int infologLen = 0;
@@ -308,7 +317,7 @@ void ShaderLog(unsigned int shader)
 		infoLog = new char[infologLen];
 		if (infoLog == NULL)
 		{
-			std::cout <<  "ERROR: Could not allocate InfoLog buffer" << std::endl;
+			std::cout << "ERROR: Could not allocate InfoLog buffer" << std::endl;
 			exit(1);
 		}
 		glGetShaderInfoLog(shader, infologLen, &charsWritten, infoLog);
@@ -328,7 +337,7 @@ void InitPositionBuffers()
 	glGenBuffers(1, &VBO);
 	/*glGenBuffers(1, &IBO);*/
 
-	//РџСЂРёРІСЏР·С‹РІР°РµРј VAO
+	//Привязываем VAO
 	glBindVertexArray(VAO);
 
 	auto i0 = glGetAttribLocation(Program, "vertexPosition");
@@ -342,23 +351,23 @@ void InitPositionBuffers()
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(GLfloat), &vertices[0], GL_STATIC_DRAW);
 
-	//// РљРѕРїРёСЂСѓРµРј РЅР°С€Рё РёРЅРґРµРєСЃС‹ РІ РІ Р±СѓС„РµСЂ РґР»СЏ OpenGL
+	//// Копируем наши индексы в в буфер для OpenGL
 	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
 	//glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
 
-	// 3. РЈСЃС‚Р°РЅР°РІР»РёРІР°РµРј СѓРєР°Р·Р°С‚РµР»Рё РЅР° РІРµСЂС€РёРЅРЅС‹Рµ Р°С‚СЂРёР±СѓС‚С‹
-	// РђС‚СЂРёР±СѓС‚ СЃ РєРѕРѕСЂРґРёРЅР°С‚Р°РјРё
+	// 3. Устанавливаем указатели на вершинные атрибуты
+	// Атрибут с координатами
 	glVertexAttribPointer(i0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0);
-	// РђС‚СЂРёР±СѓС‚ СЃ С†РІРµС‚РѕРј
+	// Атрибут с цветом
 	glVertexAttribPointer(i1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
-	// РђС‚СЂРёР±СѓС‚ СЃ С‚РµРєСЃС‚СѓСЂРѕР№
+	// Атрибут с текстурой
 	glVertexAttribPointer(i2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(6 * sizeof(GLfloat)));
 	//glEnableVertexAttribArray(0);
 
 	std::cout << i0 << " " << i1 << " " << i2 << std::endl;
 	std::cout << vertices.size() << std::endl;
 
-	//РћС‚РІСЏР·С‹РІР°РµРј VAO
+	//Отвязываем VAO
 	glBindVertexArray(0);
 	glDisableVertexAttribArray(i0);
 	glDisableVertexAttribArray(i1);
@@ -367,32 +376,32 @@ void InitPositionBuffers()
 }
 
 void InitShader() {
-	// РЎРѕР·РґР°РµРј РІРµСЂС€РёРЅРЅС‹Р№ С€РµР№РґРµСЂ
+	// Создаем вершинный шейдер
 	GLuint vShader = glCreateShader(GL_VERTEX_SHADER);
-	// РџРµСЂРµРґР°РµРј РёСЃС…РѕРґРЅС‹Р№ РєРѕРґ
+	// Передаем исходный код
 	glShaderSource(vShader, 1, &VertexShaderSource, NULL);
-	// РљРѕРјРїРёР»РёСЂСѓРµРј С€РµР№РґРµСЂ
+	// Компилируем шейдер
 	glCompileShader(vShader);
 	std::cout << "vertex shader \n";
 	ShaderLog(vShader);
 
-	// РЎРѕР·РґР°РµРј С„СЂР°РіРјРµРЅС‚РЅС‹Р№ С€РµР№РґРµСЂ
+	// Создаем фрагментный шейдер
 	GLuint fShader = glCreateShader(GL_FRAGMENT_SHADER);
-	// РџРµСЂРµРґР°РµРј РёСЃС…РѕРґРЅС‹Р№ РєРѕРґ
+	// Передаем исходный код
 	glShaderSource(fShader, 1, &FragShaderSource, NULL);
-	// РљРѕРјРїРёР»РёСЂСѓРµРј С€РµР№РґРµСЂ
+	// Компилируем шейдер
 	glCompileShader(fShader);
 	std::cout << "fragment shader \n";
 	ShaderLog(fShader);
 
-	// РЎРѕР·РґР°РµРј РїСЂРѕРіСЂР°РјРјСѓ Рё РїСЂРёРєСЂРµРїР»СЏРµРј С€РµР№РґРµСЂС‹ Рє РЅРµР№
+	// Создаем программу и прикрепляем шейдеры к ней
 	Program = glCreateProgram();
 	glAttachShader(Program, vShader);
 	glAttachShader(Program, fShader);
 
-	// Р›РёРЅРєСѓРµРј С€РµР№РґРµСЂРЅСѓСЋ РїСЂРѕРіСЂР°РјРјСѓ
+	// Линкуем шейдерную программу
 	glLinkProgram(Program);
-	// РџСЂРѕРІРµСЂСЏРµРј СЃС‚Р°С‚СѓСЃ СЃР±РѕСЂРєРё
+	// Проверяем статус сборки
 	int link_ok;
 	glGetProgramiv(Program, GL_LINK_STATUS, &link_ok);
 	if (!link_ok)
@@ -421,13 +430,13 @@ void InitShader() {
 		std::cout << "could not bind uniform " << unif_name << std::endl;
 		return;
 	}
-	/*const char* unif_name = "lpos";
-	Unif_lpos = glGetUniformLocation(Program, unif_name);
-	if (Unif_lpos == -1)
+	 unif_name = "eyePos";
+	 Unif_eye = glGetUniformLocation(Program, unif_name);
+	if (Unif_eye == -1)
 	{
 		std::cout << "could not bind uniform " << unif_name << std::endl;
 		return;
-	}
+	}/*
 	unif_name = "lambient";
 	Unif_lamb = glGetUniformLocation(Program, unif_name);
 	if (Unif_lamb == -1)
@@ -448,13 +457,13 @@ void InitShader() {
 void Init() {
 	InitShader();
 	InitBuffers();
-	// Р’РєР»СЋС‡Р°РµРј РїСЂРѕРІРµСЂРєСѓ РіР»СѓР±РёРЅС‹
+	// Включаем проверку глубины
 	glEnable(GL_DEPTH_TEST);
 }
 
 
 void Draw() {
-	// РЈСЃС‚Р°РЅР°РІР»РёРІР°РµРј С€РµР№РґРµСЂРЅСѓСЋ РїСЂРѕРіСЂР°РјРјСѓ С‚РµРєСѓС‰РµР№
+	// Устанавливаем шейдерную программу текущей
 	glUseProgram(Program);
 	//glUniform4fv(Unif_lamb, 4, lambient);
 	//glUniform4fv(Unif_lpos, 4, lpos);
@@ -462,29 +471,30 @@ void Draw() {
 	glUniform1f(Unif_posx, xpos);
 	glUniform1f(Unif_posy, ypos);
 	glUniform1f(Unif_posz, zpos);
-	// РџСЂРёРІСЏР·С‹РІР°РµРј РІР°Рѕ
+	glUniform3fv(Unif_eye, 3, eyePos);
+	// Привязываем вао
 	glBindVertexArray(VAO);
-	// РџРµСЂРµРґР°РµРј РґР°РЅРЅС‹Рµ РЅР° РІРёРґРµРѕРєР°СЂС‚Сѓ(СЂРёСЃСѓРµРј)
+	// Передаем данные на видеокарту(рисуем)
 	glDrawArrays(GL_TRIANGLES, 0, vertices.size());
 	glBindVertexArray(0);
-	// РћС‚РєР»СЋС‡Р°РµРј С€РµР№РґРµСЂРЅСѓСЋ РїСЂРѕРіСЂР°РјРјСѓ
+	// Отключаем шейдерную программу
 	glUseProgram(0);
 	checkOpenGLerror(3);
 
-	
-	
+
+
 }
 
 
-// РћСЃРІРѕР±РѕР¶РґРµРЅРёРµ С€РµР№РґРµСЂРѕРІ
+// Освобождение шейдеров
 void ReleaseShader() {
-	// РџРµСЂРµРґР°РІР°СЏ РЅРѕР»СЊ, РјС‹ РѕС‚РєР»СЋС‡Р°РµРј С€РµР№РґСЂРЅСѓСЋ РїСЂРѕРіСЂР°РјРјСѓ
+	// Передавая ноль, мы отключаем шейдрную программу
 	glUseProgram(0);
-	// РЈРґР°Р»СЏРµРј С€РµР№РґРµСЂРЅСѓСЋ РїСЂРѕРіСЂР°РјРјСѓ
+	// Удаляем шейдерную программу
 	glDeleteProgram(Program);
 }
 
-// РћСЃРІРѕР±РѕР¶РґРµРЅРёРµ Р±СѓС„РµСЂР°
+// Освобождение буфера
 void ReleaseVBO()
 {
 	glBindBuffer(GL_ARRAY_BUFFER, 0);

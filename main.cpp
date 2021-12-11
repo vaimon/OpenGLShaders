@@ -6,15 +6,19 @@
 #include "obj_parsing.h"
 #endif
 
-#ifdef LIGHTING
-#include "lighting.h"
+#ifdef LAMBERT
+#include "lambert.h"
+#endif
+
+#ifdef PHONG
+#include "phong.h"
 #endif
 
 
 
 
 int main() {
-	int figuretype = 3;
+	int figuretype = 5;
 
 	switch (figuretype) {
 	case 1: task_main(".\\shapes\\cube.obj"); return 0;
