@@ -14,11 +14,15 @@
 #include "phong.h"
 #endif
 
+#ifdef BLINN
+#include "Blinn.h"
+#endif
+
 
 
 
 int main() {
-	int figuretype = 5;
+	int figuretype = 6;
 
 	switch (figuretype) {
 	case 1: task_main(".\\shapes\\cube.obj"); return 0;

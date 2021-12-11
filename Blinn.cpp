@@ -1,5 +1,5 @@
 #include "switcher.h"
-#ifdef PHONG
+#ifdef BLINN
 
 #include <iostream>
 #include <fstream>
@@ -27,7 +27,7 @@ GLuint Unif_posy;
 GLuint Unif_posz;
 GLuint Unif_eye;
 
-float eyePos[3] = {0.5f,1.0f,1.0f};
+float eyePos[3] = { 0.5f,1.0f,1.0f };
 float lambient[4] = { 0.4f, 0.7f, 0.2f, 1.0f };
 float ldiffuse[4] = { 0.5f, 0.0f, 0.0f, 1.0f };
 float lspecular[4] = { 0.7f, 0.7f, 0.0f, 1.0f };
@@ -65,6 +65,7 @@ out vec2 vTextureCoordinate;
 out vec3 vnormal;
 out vec3 lightp;
 out vec3 vnew;
+out vec3 h;
 
 void main() {
 float x_angle = -1;
@@ -103,6 +104,7 @@ vec3 temp1 = vec3(eyePos);
 vnormal = newNormale;
 lightp =  temp-position;
 vnew = temp1 - position; 
+h = normalize( lightp + vnew );
  gl_Position = vec4(position.x, position.y, (position.z * 0.1) + 0.5, 1.0);
  
 }
@@ -116,7 +118,7 @@ in vec2 vTextureCoordinate;
 in vec3 vnormal;
 in vec3 lightp;
 in vec3 vnew;
-
+in vec3 h;
 
 
 // ÷вет, который будем отрисовывать
@@ -132,10 +134,11 @@ void main() {
     vec3 n2   = normalize ( vnormal );
     vec3 l2   = normalize ( lightp );
     vec3 v2   = normalize ( vnew ); 
-    vec3 r    = reflect ( -v2, n2 );
-    vec4 diff = diffColor * max (dot(n2, l2),0.0f );
-    vec4 spec = specColor * pow (max(dot (l2, r), 0.0f ), specPower );
+    vec3 h2   = normalize ( h );
+    vec4 diff = diffColor * max ( dot ( n2, l2 ), 0.0 );
+    vec4 spec = specColor * pow ( max ( dot ( n2, h2 ), 0.0 ), specPower );
     color= diff + spec;
+
 
 
 }
@@ -431,8 +434,8 @@ void InitShader() {
 		std::cout << "could not bind uniform " << unif_name << std::endl;
 		return;
 	}
-	 unif_name = "eyePos";
-	 Unif_eye = glGetUniformLocation(Program, unif_name);
+	unif_name = "eyePos";
+	Unif_eye = glGetUniformLocation(Program, unif_name);
 	if (Unif_eye == -1)
 	{
 		std::cout << "could not bind uniform " << unif_name << std::endl;

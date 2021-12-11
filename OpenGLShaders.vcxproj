@@ -19,12 +19,14 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Blinn.cpp" />
     <ClCompile Include="lambert.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="obj_parsing.cpp" />
     <ClCompile Include="phong.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Blinn.h" />
     <ClInclude Include="lambert.h" />
     <ClInclude Include="obj_parsing.h" />
     <ClInclude Include="phong.h" />
