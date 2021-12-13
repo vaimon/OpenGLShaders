@@ -35,16 +35,10 @@ GLuint Unif_eye;
 GLint Unif_xangle;
 GLint Unif_yangle;
 GLint Unif_zangle;
+
 float eyePos[3] = {0.5f,0.5f,-1.0f};
-float lambient[4] = { 0.4f, 0.7f, 0.2f, 1.0f };
-float ldiffuse[4] = { 0.5f, 0.0f, 0.0f, 1.0f };
-float lspecular[4] = { 0.7f, 0.7f, 0.0f, 1.0f };
-float lattenuation[3] = { 1.0f,0.0f,1.0f };//конст, лин, кв
-float viewPosition[3] = { 0.0f, 0.0f, 1.0f };
-float mambient[4] = { 0.05f,0.05f,0.06f,1.0f };
-float mdiffuse[4] = { 0.18f,0.17f,0.22f,1.0f };
-float mspecular[4] = { 0.33f,0.32f,0.36f,1.0f };
-float mshininess = 0.3f;
+
+
 
 // Вершина
 struct Vertex
@@ -72,7 +66,6 @@ in vec2 vertexTextureCoords;
 
 
 out vec2 vTextureCoordinate;
-//out vec4 vPosition;
 out vec3 vnormal;
 out vec3 lightp;
 out vec3 vnew;
@@ -473,7 +466,7 @@ void InitShader() {
 	}
 	
 	Unif_xangle = glGetUniformLocation(Program, "x_angle");
-	if (Unif_xangle < -360)
+	if (Unif_xangle < -1)
 	{
 		std::cout << "could not bind uniform " << unif_name << std::endl;
 		return;
@@ -481,7 +474,7 @@ void InitShader() {
 	// Вытягиваем ID юниформ угла поворота по oy
 
 	Unif_yangle = glGetUniformLocation(Program, "y_angle");
-	if (Unif_yangle < -360)
+	if (Unif_yangle < -1)
 	{
 		std::cout << "could not bind uniform " << unif_name << std::endl;
 		return;
@@ -489,11 +482,12 @@ void InitShader() {
 	// Вытягиваем ID юниформ угла поворота по oz
 	
 	Unif_zangle = glGetUniformLocation(Program, "z_angle");
-	if (Unif_zangle < -360)
+	if (Unif_zangle < -1)
 	{
 		std::cout << "could not bind uniform " << unif_name << std::endl;
 		return;
 	}
+	
 	/*
 	unif_name = "lambient";
 	Unif_lamb = glGetUniformLocation(Program, unif_name);
@@ -530,6 +524,7 @@ void Draw() {
 	glUniform1f(Unif_xangle, x_angle);
 	glUniform1f(Unif_yangle, y_angle);
 	glUniform1f(Unif_zangle, z_angle);
+
 	// Привязываем вао
 	glBindVertexArray(VAO);
 	// Передаем данные на видеокарту(рисуем)
