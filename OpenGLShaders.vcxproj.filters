@@ -36,12 +36,15 @@
     <ClCompile Include="Oren.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
+    <ClCompile Include="Minnaert.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="obj_parsing.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
-    <ClInclude Include="lambert.h">
+    <ClInclude Include="lighting.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
     <ClInclude Include="switcher.h">
@@ -57,6 +60,9 @@
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
     <ClInclude Include="Oren.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="Minnaert.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>

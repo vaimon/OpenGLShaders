@@ -171,7 +171,7 @@ void ChangePos(float x, float y, float z)
 		zpos += z;
 
 }
-float x_angle = 1.0;
+float x_angle = -1.0;
 float y_angle = 1.0;
 float z_angle = 1.0;
 //изменение угла поворота по осям
@@ -493,7 +493,8 @@ void InitShader() {
 	{
 		std::cout << "could not bind uniform " << unif_name << std::endl;
 		return;
-	}/*
+	}
+	/*
 	unif_name = "lambient";
 	Unif_lamb = glGetUniformLocation(Program, unif_name);
 	if (Unif_lamb == -1)

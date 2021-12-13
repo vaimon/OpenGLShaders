@@ -22,6 +22,7 @@
     <ClCompile Include="Blinn.cpp" />
     <ClCompile Include="lambert.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Minnaert.cpp" />
     <ClCompile Include="obj_parsing.cpp" />
     <ClCompile Include="Oren.cpp" />
     <ClCompile Include="phong.cpp" />
@@ -29,7 +30,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Blinn.h" />
-    <ClInclude Include="lambert.h" />
+    <ClInclude Include="lighting.h" />
+    <ClInclude Include="Minnaert.h" />
     <ClInclude Include="obj_parsing.h" />
     <ClInclude Include="Oren.h" />
     <ClInclude Include="phong.h" />

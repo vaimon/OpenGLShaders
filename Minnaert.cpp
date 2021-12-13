@@ -1,7 +1,7 @@
 #include "switcher.h"
 #define deg2rad M_PI /180.0
 #define _USE_MATH_DEFINES
-#ifdef OREN
+#ifdef MINNAERT
 
 #include <iostream>
 #include <fstream>
@@ -28,13 +28,11 @@ GLuint Unif_posx;
 GLuint Unif_posy;
 GLuint Unif_posz;
 GLuint Unif_eye;
-GLuint Unif_rough;
 GLint Unif_xangle;
 GLint Unif_yangle;
 GLint Unif_zangle;
 
-//float eyePos[3] = { 0.5f,1.0f,1.0f };
-float eyePos[3] = { 7, 5, 7 };
+float eyePos[3] = { 0.5f,1.0f,1.0f };
 float lambient[4] = { 0.4f, 0.7f, 0.2f, 1.0f };
 float ldiffuse[4] = { 0.5f, 0.0f, 0.0f, 1.0f };
 float lspecular[4] = { 0.7f, 0.7f, 0.0f, 1.0f };
@@ -44,8 +42,6 @@ float mambient[4] = { 0.05f,0.05f,0.06f,1.0f };
 float mdiffuse[4] = { 0.18f,0.17f,0.22f,1.0f };
 float mspecular[4] = { 0.33f,0.32f,0.36f,1.0f };
 float mshininess = 0.3f;
-float roughness = 0.5f;
-
 
 // Вершина
 struct Vertex
@@ -90,11 +86,7 @@ vec3 position = vertexPosition * mat3(
 cos(y_angle), 0, sin(y_angle),
 0, 1, 0,
 -sin(y_angle), 0, cos(y_angle)
-)* mat3(
-            cos(z_angle), sin(z_angle),0,
-            -sin(z_angle),cos(z_angle) , 0,
-            0, 0, 1
-        );
+);
 
 mat3 aff=mat3(
 1, 0, 0,
@@ -104,11 +96,7 @@ mat3 aff=mat3(
 cos(y_angle), 0, sin(y_angle),
 0, 1, 0,
 -sin(y_angle), 0, cos(y_angle)
-)* mat3(
-            cos(z_angle), sin(z_angle),0,
-            -sin(z_angle),cos(z_angle) , 0,
-            0, 0, 1
-        );
+);
 
 vec3 newNormale = mat3(transpose(inverse(aff))) *  vertexNormale;
 vTextureCoordinate = vertexTextureCoords;
@@ -116,8 +104,8 @@ vTextureCoordinate = vertexTextureCoords;
 vec3 lposition = vec3(xpos,ypos,zpos);
 
 // Присваиваем вершину волшебной переменной gl_Position
-vec3 temp = normalize(lposition);
-vec3 temp1 = normalize(vec3(eyePos));
+vec3 temp = lposition;
+vec3 temp1 = vec3(eyePos);
 //vPosition = vec4(position.x, position.y, (position.z * 0.1) + 0.5, 1.0);
 vnormal = newNormale;
 lightp =  temp-position;
@@ -130,7 +118,6 @@ vnew = temp1 - position;
 // Исходный код фрагментного шейдера
 const char* FragShaderSource = R"(
 #version 330 core
-uniform float roughness;
 in vec2 vTextureCoordinate;
 //in vec4 vPosition;
 in vec3 vnormal;
@@ -142,26 +129,17 @@ in vec3 vnew;
 out vec4 color;
 
 
-const vec4 diffColor = vec4 ( 0.5, 0.0, 0.0, 1.0 );
+const vec4  diffColor = vec4 ( 0.5f, 0.0f, 0.0f, 1.0f );
+ const float k         = 0.8;
 
 void main() {
-    vec3  n2   = normalize ( vnormal );
-    vec3  l2   = normalize ( lightp );
-    vec3  v2   = normalize ( vnew );
 
-    float nl    = dot ( n2, l2 );
-    float nv    = dot ( n2, v2 );
-    vec3  lProj = normalize ( l2 - n2 * nl );
-    vec3  vProj = normalize ( v2 - n2 * nv );
-    float cx    = max ( dot ( lProj, vProj ), 0.0 );
-    float	r2 = roughness * roughness;
-    float	aa = 1.0f - 0.5f * r2 / (r2 + 0.33f);
-    float	bb = 0.45f * r2 / (r2 + 0.09f);
-    float cosAlpha = nl > nv ? nl : nv;
-    float cosBeta  = nl > nv ? nv : nl;
-    float dx       = sqrt ( ( 1.0 - cosAlpha * cosAlpha ) * ( 1.0 - cosBeta * cosBeta ) ) / cosBeta;
-
-    color = max ( 0.0, nl ) * diffColor * (aa + bb * cx * dx);
+    vec3 n2   = normalize ( vnormal );
+    vec3 l2   = normalize ( lightp );
+    vec3 v2   = normalize ( vnew ); 
+    float d1 = pow ( max ( dot ( n2, l2 ), 0.0 ), (1.0 + k ));
+    float d2 = pow ( 1.0 - dot ( n2, v2 ), (1.0 - k) );
+    color= diffColor*d1*d2 ;
 
 
 
@@ -180,7 +158,7 @@ void ChangePos(float x, float y, float z)
 		zpos += z;
 
 }
-float x_angle = 1.0;
+float x_angle = -1.0;
 float y_angle = 1.0;
 float z_angle = 1.0;
 //изменение угла поворота по осям
@@ -319,7 +297,6 @@ int task_main(std::string objFilename) {
 				case (sf::Keyboard::D): changeangle(0, -1 * deg2rad, 0); break;
 				case (sf::Keyboard::E): changeangle(0, 0, 1 * deg2rad); break;
 				case (sf::Keyboard::Q): changeangle(0, 0, -1 * deg2rad); break;
-
 
 				default: break;
 				}
@@ -479,13 +456,6 @@ void InitShader() {
 		std::cout << "could not bind uniform " << unif_name << std::endl;
 		return;
 	}
-	unif_name = "roughness";
-	Unif_rough = glGetUniformLocation(Program, unif_name);
-	if (Unif_rough == -1)
-	{
-		std::cout << "could not bind uniform " << unif_name << std::endl;
-		return;
-	}
 	Unif_xangle = glGetUniformLocation(Program, "x_angle");
 	if (Unif_xangle < -360)
 	{
@@ -507,8 +477,14 @@ void InitShader() {
 	{
 		std::cout << "could not bind uniform " << unif_name << std::endl;
 		return;
+	}/*
+	unif_name = "lambient";
+	Unif_lamb = glGetUniformLocation(Program, unif_name);
+	if (Unif_lamb == -1)
+	{
+		std::cout << "could not bind uniform " << unif_name << std::endl;
+		return;
 	}
-	/*
 	unif_name = "ldiffuse";
 	Unif_ldiff = glGetUniformLocation(Program, unif_name);
 	if (Unif_ldiff == -1)
@@ -537,11 +513,9 @@ void Draw() {
 	glUniform1f(Unif_posy, ypos);
 	glUniform1f(Unif_posz, zpos);
 	glUniform3fv(Unif_eye, 1, eyePos);
-	glUniform1f(Unif_rough, roughness);
 	glUniform1f(Unif_xangle, x_angle);
 	glUniform1f(Unif_yangle, y_angle);
 	glUniform1f(Unif_zangle, z_angle);
-	
 	// Привязываем вао
 	glBindVertexArray(VAO);
 	// Передаем данные на видеокарту(рисуем)

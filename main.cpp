@@ -7,30 +7,35 @@
 #endif
 
 #ifdef LAMBERT
-#include "lambert.h"
+#include "lighting.h"
 #endif
 
 #ifdef PHONG
-#include "phong.h"
+#include "lighting.h"
 #endif
 
 #ifdef BLINN
-#include "Blinn.h"
+#include"lighting.h"
 #endif
 
 #ifdef TOONSHADING
-#include "ToonShading.h"
+#include "lighting.h"
 #endif
 
 #ifdef OREN
-#include "Oren.h"
+#include "lighting.h"
 #endif
+
+#ifdef MINNAERT
+#include "lighting.h"
+#endif
+
 
 
 
 
 int main() {
-	int figuretype = 1;
+	int figuretype = 6;
 
 	switch (figuretype) {
 	case 1: task_main(".\\shapes\\cube.obj"); return 0;

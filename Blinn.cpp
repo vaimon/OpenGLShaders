@@ -1,4 +1,6 @@
 #include "switcher.h"
+#define deg2rad M_PI /180.0
+#define _USE_MATH_DEFINES
 #ifdef BLINN
 
 #include <iostream>
@@ -26,6 +28,9 @@ GLuint Unif_posx;
 GLuint Unif_posy;
 GLuint Unif_posz;
 GLuint Unif_eye;
+GLint Unif_xangle;
+GLint Unif_yangle;
+GLint Unif_zangle;
 
 float eyePos[3] = { 0.5f,1.0f,1.0f };
 float lambient[4] = { 0.4f, 0.7f, 0.2f, 1.0f };
@@ -54,6 +59,9 @@ uniform float xpos;
 uniform float ypos;
 uniform float zpos;
 uniform vec3 eyePos;
+uniform float x_angle;
+uniform float y_angle;
+uniform float z_angle;
 // Координаты вершины. Атрибут, инициализируется через буфер.
 in vec3 vertexPosition;
 in vec3 vertexNormale;
@@ -68,8 +76,6 @@ out vec3 vnew;
 out vec3 h;
 
 void main() {
-float x_angle = -1;
-float y_angle = 1;
 
 // Поворачиваем вершину
 vec3 position = vertexPosition * mat3(
@@ -80,7 +86,11 @@ vec3 position = vertexPosition * mat3(
 cos(y_angle), 0, sin(y_angle),
 0, 1, 0,
 -sin(y_angle), 0, cos(y_angle)
-);
+)* mat3(
+            cos(z_angle), sin(z_angle),0,
+            -sin(z_angle),cos(z_angle) , 0,
+            0, 0, 1
+        );
 
 mat3 aff=mat3(
 1, 0, 0,
@@ -90,7 +100,11 @@ mat3 aff=mat3(
 cos(y_angle), 0, sin(y_angle),
 0, 1, 0,
 -sin(y_angle), 0, cos(y_angle)
-);
+)* mat3(
+            cos(z_angle), sin(z_angle),0,
+            -sin(z_angle),cos(z_angle) , 0,
+            0, 0, 1
+        );
 
 vec3 newNormale = mat3(transpose(inverse(aff))) *  vertexNormale;
 vTextureCoordinate = vertexTextureCoords;
@@ -156,7 +170,15 @@ void ChangePos(float x, float y, float z)
 		zpos += z;
 
 }
-
+float x_angle = -1.0;
+float y_angle = 1.0;
+float z_angle = 1.0;
+//изменение угла поворота по осям
+void changeangle(float angleX, float  angleY, float  angleZ) {
+	x_angle += angleX;
+	y_angle += angleY;
+	z_angle += angleZ;
+}
 std::vector<GLfloat> vertices{};
 
 std::vector<GLuint> indices{};
@@ -281,6 +303,12 @@ int task_main(std::string objFilename) {
 				case (sf::Keyboard::K):ChangePos(0.0f, 0.0f, -0.01f); break;
 				case (sf::Keyboard::Up):ChangePos(0.0f, 0.01f, 0.0f); break;
 				case (sf::Keyboard::Down):ChangePos(0.0f, -0.01f, 0.0f); break;
+				case (sf::Keyboard::W): changeangle(1 * deg2rad, 0, 0); break;
+				case (sf::Keyboard::S): changeangle(0, -1 * deg2rad, 0); break;
+				case (sf::Keyboard::A):changeangle(0, 1 * deg2rad, 0); break;
+				case (sf::Keyboard::D): changeangle(0, -1 * deg2rad, 0); break;
+				case (sf::Keyboard::E): changeangle(0, 0, 1 * deg2rad); break;
+				case (sf::Keyboard::Q): changeangle(0, 0, -1 * deg2rad); break;
 
 
 				default: break;
@@ -440,6 +468,28 @@ void InitShader() {
 	{
 		std::cout << "could not bind uniform " << unif_name << std::endl;
 		return;
+	}
+	Unif_xangle = glGetUniformLocation(Program, "x_angle");
+	if (Unif_xangle < -360)
+	{
+		std::cout << "could not bind uniform " << unif_name << std::endl;
+		return;
+	}
+	// Вытягиваем ID юниформ угла поворота по oy
+
+	Unif_yangle = glGetUniformLocation(Program, "y_angle");
+	if (Unif_yangle < -360)
+	{
+		std::cout << "could not bind uniform " << unif_name << std::endl;
+		return;
+	}
+	// Вытягиваем ID юниформ угла поворота по oz
+
+	Unif_zangle = glGetUniformLocation(Program, "z_angle");
+	if (Unif_zangle < -360)
+	{
+		std::cout << "could not bind uniform " << unif_name << std::endl;
+		return;
 	}/*
 	unif_name = "lambient";
 	Unif_lamb = glGetUniformLocation(Program, unif_name);
@@ -476,6 +526,9 @@ void Draw() {
 	glUniform1f(Unif_posy, ypos);
 	glUniform1f(Unif_posz, zpos);
 	glUniform3fv(Unif_eye, 1, eyePos);
+	glUniform1f(Unif_xangle, x_angle);
+	glUniform1f(Unif_yangle, y_angle);
+	glUniform1f(Unif_zangle, z_angle);
 	// Привязываем вао
 	glBindVertexArray(VAO);
 	// Передаем данные на видеокарту(рисуем)
