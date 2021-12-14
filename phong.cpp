@@ -147,7 +147,7 @@ void main() {
     vec4 diff = diffColor * max (dot(n2, l2),0.0f );
     vec4 spec = specColor * pow (max(dot (l2, r), 0.0f ), specPower );
     color= diff + spec;
-
+   // color=(vec4(vnormal,1.0f) + vec4(0.5f, 0.0f, 0.0f,1.0f)) * 0.5f;
 
 }
 )";
