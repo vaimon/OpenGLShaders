@@ -1,4 +1,4 @@
-#define LAMBERT
+//#define LAMBERT
 //#define PHONG
 //#define BLINN
 //#define TOONSHADING
@@ -7,9 +7,9 @@
 
 //#define OBJ_PARSING
 
-//#define TEXTURING
+#define TEXTURING
 
-#define FIGURE_TYPE 1
+#define FIGURE_TYPE 5
 // 1 - cube
 // 2 - tetrahedron
 // 3 - dodecahedron
