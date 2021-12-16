@@ -19,14 +19,26 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="lighting.cpp" />
+    <ClCompile Include="Blinn.cpp" />
+    <ClCompile Include="lambert.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Minnaert.cpp" />
     <ClCompile Include="obj_parsing.cpp" />
+    <ClCompile Include="Oren.cpp" />
+    <ClCompile Include="phong.cpp" />
+    <ClCompile Include="ToonShading.cpp" />
+    <ClCompile Include="texturing.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Blinn.h" />
     <ClInclude Include="lighting.h" />
+    <ClInclude Include="Minnaert.h" />
     <ClInclude Include="obj_parsing.h" />
+    <ClInclude Include="Oren.h" />
+    <ClInclude Include="phong.h" />
     <ClInclude Include="switcher.h" />
+    <ClInclude Include="ToonShading.h" />
+    <ClInclude Include="texturing.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

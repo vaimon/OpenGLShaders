@@ -1,5 +1,5 @@
 #include "switcher.h"
-#ifdef OBJ_PARSING
+#ifdef TEXTURING
 
 #include <iostream>
 #include <fstream>
@@ -8,21 +8,30 @@
 #include "obj_parsing.h"
 
 
-// РџРµСЂРµРјРµРЅРЅС‹Рµ СЃ РёРЅРґРµРЅС‚РёС„РёРєР°С‚РѕСЂР°РјРё ID
-// ID С€РµР№РґРµСЂРЅРѕР№ РїСЂРѕРіСЂР°РјРјС‹
+// Переменные с индентификаторами ID
+// ID шейдерной программы
 GLuint Program;
 
-// ID VBO РІРµСЂС€РёРЅ
+// ID VBO вершин
 GLuint VBO;
 
-// ID VAO РІРµСЂС€РёРЅ
+// ID VAO вершин
 GLuint VAO;
 
-// ID IBO РІРµСЂС€РёРЅ
-//GLuint IBO;
+// ID юниформа текстур
+GLint unifTexture1;
+GLint unifTexture2;
+// ID текстур
+GLint textureHandle1;
+GLint textureHandle2;
+// SFML текстур
+sf::Texture ourTexture1;
+sf::Texture ourTexture2;
 
+// регулирование текстур
+GLint Unif_reg;
 
-// Р’РµСЂС€РёРЅР°
+// Вершина
 struct Vertex
 {
     GLfloat x;
@@ -30,15 +39,16 @@ struct Vertex
     GLfloat z;
 };
 
+// Исходный код вершинного шейдера
 const char* VertexShaderSource = R"(
     #version 330 core
-    // РљРѕРѕСЂРґРёРЅР°С‚С‹ РІРµСЂС€РёРЅС‹. РђС‚СЂРёР±СѓС‚, РёРЅРёС†РёР°Р»РёР·РёСЂСѓРµС‚СЃСЏ С‡РµСЂРµР· Р±СѓС„РµСЂ.
+    // Координаты вершины. Атрибут, инициализируется через буфер.
     in vec3 vertexPosition;
     in vec3 vertexNormale;
     in vec2 vertexTextureCoords;
-
+    
     out vec2 vTextureCoordinate;
-    out vec3 vColor;
+    out vec3 vColor; 
     void main() {
         float x_angle = -0.5;
         float y_angle = 0.5;
@@ -51,32 +61,41 @@ const char* VertexShaderSource = R"(
             0, 1, 0,
             -sin(y_angle), 0, cos(y_angle)
         );
-        // РџРѕРІРѕСЂР°С‡РёРІР°РµРј РІРµСЂС€РёРЅСѓ
-        //vec3 position = vertexPosition;
 
         vTextureCoordinate = vertexTextureCoords;
-        // TODO: РЅР°РґРѕ РїРµСЂРµРґРµР»Р°С‚СЊ РІРѕ РІСЃСЏРєРёРµ РѕСЃРІРµС‰Р°С‚РµР»СЊРЅС‹Рµ С€С‚СѓРєРё
         vColor = (vertexNormale + vec3(1.0, 1.0, 1.0)) * 0.5;
 
-        // РџСЂРёСЃРІР°РёРІР°РµРј РІРµСЂС€РёРЅСѓ РІРѕР»С€РµР±РЅРѕР№ РїРµСЂРµРјРµРЅРЅРѕР№ gl_Position
+        // Присваиваем вершину волшебной переменной gl_Position
         gl_Position = vec4(position.x, position.y, (position.z * 0.1) + 0.5, 1.0);
     }
 )";
-// РСЃС…РѕРґРЅС‹Р№ РєРѕРґ С„СЂР°РіРјРµРЅС‚РЅРѕРіРѕ С€РµР№РґРµСЂР°
+
+// Исходный код фрагментного шейдера
 const char* FragShaderSource = R"(
     #version 330 core
+
     in vec2 vTextureCoordinate;
     in vec3 vColor;
-    // Р¦РІРµС‚, РєРѕС‚РѕСЂС‹Р№ Р±СѓРґРµРј РѕС‚СЂРёСЃРѕРІС‹РІР°С‚СЊ
+
+    // Цвет, который будем отрисовывать
     out vec4 color;
+
+    uniform sampler2D ourTexture1;
+    uniform sampler2D ourTexture2;
+    uniform float reg;
     void main() {
-       color = vec4(vColor, 1.0) + vec4(vTextureCoordinate * 0.0001, 0.0, 0.0);
+       // Задание 1
+       //color = texture(ourTexture2, vTextureCoordinate);
+       // Задание 2
+       //color = texture(ourTexture2, vTextureCoordinate) * (vec4(vColor, 1.0) + vec4(vTextureCoordinate * 0.0001, 0.0, 0.0));
+       // Задание 3
+       color = mix(texture(ourTexture1, vTextureCoordinate), texture(ourTexture2, vTextureCoordinate), reg) * (vec4(vColor, 1.0) + vec4(vTextureCoordinate * 0.0001, 0.0, 0.0));
     }
 )";
 
-std::vector<GLfloat> vertices {};
+std::vector<GLfloat> vertices{};
 
-std::vector<GLuint>  indices {};
+std::vector<GLuint>  indices{};
 
 std::vector<std::string> split(const std::string& s, char delim) {
     std::stringstream ss(s);
@@ -84,7 +103,6 @@ std::vector<std::string> split(const std::string& s, char delim) {
     std::vector<std::string> elems;
     while (std::getline(ss, item, delim)) {
         elems.push_back(item);
-        // elems.push_back(std::move(item)); // if C++11 (based on comment from @mchiasson)
     }
     return elems;
 }
@@ -139,15 +157,6 @@ void parseFile(std::string fileName) {
             auto splitted = split(line, ' ');
             for (size_t i = 1; i < splitted.size(); i++)
             {
-                //auto it = std::find(indexAccordance.begin(), indexAccordance.end(), splitted[i]);
-                //if (it == indexAccordance.end()) {
-                //    indexAccordance.push_back(splitted[i]);
-                //    indices.push_back(indexAccordance.size() - 1);
-                //}
-                //else {
-                //   indices.push_back(std::distance(indexAccordance.begin(),it));
-                //    continue;
-                //}
                 auto triplet = split(splitted[i], '/');
                 int positionIndex = std::stoi(triplet[0]) - 1;
                 for (int j = 0; j < 3; j++) {
@@ -170,13 +179,21 @@ void parseFile(std::string fileName) {
     return;
 }
 
+float reg = 0.05;
+// регулирование текстур
+void changeText(float regg) {
+    if (reg + regg > 1 || reg + regg < 0)
+        return;
+    reg += regg;
+}
+
 int task_main(std::string objFilename) {
     sf::Window window(sf::VideoMode(700, 700), "My OpenGL window", sf::Style::Default, sf::ContextSettings(24));
     window.setVerticalSyncEnabled(true);
 
     window.setActive(true);
 
-    // РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ glew
+    // Инициализация glew
     glewInit();
     parseFile(objFilename);
     Init();
@@ -189,6 +206,13 @@ int task_main(std::string objFilename) {
             }
             else if (event.type == sf::Event::Resized) {
                 //glViewport(0, 0, event.size.width, event.size.height);
+            }
+            else if (event.type == sf::Event::KeyPressed) {
+                switch (event.key.code) {
+                case (sf::Keyboard::A): changeText(-0.05); break;
+                case (sf::Keyboard::D): changeText(0.05); break;
+                default: break;
+                }
             }
         }
 
@@ -204,16 +228,16 @@ int task_main(std::string objFilename) {
 }
 
 
-// РџСЂРѕРІРµСЂРєР° РѕС€РёР±РѕРє OpenGL, РµСЃР»Рё РµСЃС‚СЊ С‚Рѕ РІС‹РІРѕРґ РІ РєРѕРЅСЃРѕР»СЊ С‚РёРї РѕС€РёР±РєРё
+// Проверка ошибок OpenGL, если есть то вывод в консоль тип ошибки
 void checkOpenGLerror(int place) {
     GLenum errCode;
-    // РљРѕРґС‹ РѕС€РёР±РѕРє РјРѕР¶РЅРѕ СЃРјРѕС‚СЂРµС‚СЊ С‚СѓС‚
+    // Коды ошибок можно смотреть тут
     // https://www.khronos.org/opengl/wiki/OpenGL_Error
     if ((errCode = glGetError()) != GL_NO_ERROR)
-        std::cout << "OpenGl error in "<< place << "!: " << errCode << std::endl;
+        std::cout << "OpenGl error in " << place << "!: " << errCode << std::endl;
 }
 
-// Р¤СѓРЅРєС†РёСЏ РїРµС‡Р°С‚Рё Р»РѕРіР° С€РµР№РґРµСЂР°
+// Функция печати лога шейдера
 void ShaderLog(unsigned int shader)
 {
     int infologLen = 0;
@@ -243,9 +267,8 @@ void InitPositionBuffers()
     glGenVertexArrays(1, &VAO);
 
     glGenBuffers(1, &VBO);
-    /*glGenBuffers(1, &IBO);*/
 
-    //РџСЂРёРІСЏР·С‹РІР°РµРј VAO
+    //Привязываем VAO
     glBindVertexArray(VAO);
 
     auto i0 = glGetAttribLocation(Program, "vertexPosition");
@@ -259,23 +282,18 @@ void InitPositionBuffers()
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(GLfloat), &vertices[0], GL_STATIC_DRAW);
 
-    //// РљРѕРїРёСЂСѓРµРј РЅР°С€Рё РёРЅРґРµРєСЃС‹ РІ РІ Р±СѓС„РµСЂ РґР»СЏ OpenGL
-    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
-    //glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
-
-    // 3. РЈСЃС‚Р°РЅР°РІР»РёРІР°РµРј СѓРєР°Р·Р°С‚РµР»Рё РЅР° РІРµСЂС€РёРЅРЅС‹Рµ Р°С‚СЂРёР±СѓС‚С‹
-    // РђС‚СЂРёР±СѓС‚ СЃ РєРѕРѕСЂРґРёРЅР°С‚Р°РјРё
+    // 3. Устанавливаем указатели на вершинные атрибуты
+    // Атрибут с координатами
     glVertexAttribPointer(i0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0);
-    // РђС‚СЂРёР±СѓС‚ СЃ С†РІРµС‚РѕРј
+    // Атрибут с цветом
     glVertexAttribPointer(i1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
-    // РђС‚СЂРёР±СѓС‚ СЃ С‚РµРєСЃС‚СѓСЂРѕР№
+    // Атрибут с текстурой
     glVertexAttribPointer(i2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(6 * sizeof(GLfloat)));
-    //glEnableVertexAttribArray(0);
 
     std::cout << i0 << " " << i1 << " " << i2 << std::endl;
     std::cout << vertices.size() << std::endl;
 
-    //РћС‚РІСЏР·С‹РІР°РµРј VAO
+    //Отвязываем VAO
     glBindVertexArray(0);
     glDisableVertexAttribArray(i0);
     glDisableVertexAttribArray(i1);
@@ -284,32 +302,32 @@ void InitPositionBuffers()
 }
 
 void InitShader() {
-    // РЎРѕР·РґР°РµРј РІРµСЂС€РёРЅРЅС‹Р№ С€РµР№РґРµСЂ
+    // Создаем вершинный шейдер
     GLuint vShader = glCreateShader(GL_VERTEX_SHADER);
-    // РџРµСЂРµРґР°РµРј РёСЃС…РѕРґРЅС‹Р№ РєРѕРґ
+    // Передаем исходный код
     glShaderSource(vShader, 1, &VertexShaderSource, NULL);
-    // РљРѕРјРїРёР»РёСЂСѓРµРј С€РµР№РґРµСЂ
+    // Компилируем шейдер
     glCompileShader(vShader);
     std::cout << "vertex shader \n";
     ShaderLog(vShader);
 
-    // РЎРѕР·РґР°РµРј С„СЂР°РіРјРµРЅС‚РЅС‹Р№ С€РµР№РґРµСЂ
+    // Создаем фрагментный шейдер
     GLuint fShader = glCreateShader(GL_FRAGMENT_SHADER);
-    // РџРµСЂРµРґР°РµРј РёСЃС…РѕРґРЅС‹Р№ РєРѕРґ
+    // Передаем исходный код
     glShaderSource(fShader, 1, &FragShaderSource, NULL);
-    // РљРѕРјРїРёР»РёСЂСѓРµРј С€РµР№РґРµСЂ
+    // Компилируем шейдер
     glCompileShader(fShader);
     std::cout << "fragment shader \n";
     ShaderLog(fShader);
 
-    // РЎРѕР·РґР°РµРј РїСЂРѕРіСЂР°РјРјСѓ Рё РїСЂРёРєСЂРµРїР»СЏРµРј С€РµР№РґРµСЂС‹ Рє РЅРµР№
+    // Создаем программу и прикрепляем шейдеры к ней
     Program = glCreateProgram();
     glAttachShader(Program, vShader);
     glAttachShader(Program, fShader);
 
-    // Р›РёРЅРєСѓРµРј С€РµР№РґРµСЂРЅСѓСЋ РїСЂРѕРіСЂР°РјРјСѓ
+    // Линкуем шейдерную программу
     glLinkProgram(Program);
-    // РџСЂРѕРІРµСЂСЏРµРј СЃС‚Р°С‚СѓСЃ СЃР±РѕСЂРєРё
+    // Проверяем статус сборки
     int link_ok;
     glGetProgramiv(Program, GL_LINK_STATUS, &link_ok);
     if (!link_ok)
@@ -318,41 +336,101 @@ void InitShader() {
         return;
     }
 
+    unifTexture1 = glGetUniformLocation(Program, "ourTexture1");
+    if (unifTexture1 == -1)
+    {
+        std::cout << "could not bind uniform ourTexture1" << std::endl;
+        return;
+    }
+
+    unifTexture2 = glGetUniformLocation(Program, "ourTexture2");
+    if (unifTexture2 == -1)
+    {
+        std::cout << "could not bind uniform ourTexture2" << std::endl;
+        return;
+    }
+
+    Unif_reg = glGetUniformLocation(Program, "reg");
+    if (Unif_reg < 0 || Unif_reg > 1)
+    {
+        std::cout << "could not bind uniform reg"<< std::endl;
+        return;
+    }
 
     checkOpenGLerror(2);
+}
+
+void InitTextures()
+{
+    const char* filename = "texture1.jpg";
+    // Загружаем текстуру из файла
+    if (!ourTexture1.loadFromFile(filename))
+    {
+        // Не вышло загрузить картинку
+        return;
+    }
+    // Теперь получаем openGL дескриптор текстуры
+    textureHandle1 = ourTexture1.getNativeHandle();
+
+    filename = "texture2.jpg";
+    if (!ourTexture2.loadFromFile(filename))
+    {
+        // Не вышло загрузить картинку
+        return;
+    }
+    // Теперь получаем openGL дескриптор текстуры
+    textureHandle2 = ourTexture2.getNativeHandle();
 }
 
 void Init() {
     InitShader();
     InitBuffers();
-    // Р’РєР»СЋС‡Р°РµРј РїСЂРѕРІРµСЂРєСѓ РіР»СѓР±РёРЅС‹
+    InitTextures();
+    // Включаем проверку глубины
     glEnable(GL_DEPTH_TEST);
 }
 
 
 void Draw() {
-    // РЈСЃС‚Р°РЅР°РІР»РёРІР°РµРј С€РµР№РґРµСЂРЅСѓСЋ РїСЂРѕРіСЂР°РјРјСѓ С‚РµРєСѓС‰РµР№
+    // Устанавливаем шейдерную программу текущей
     glUseProgram(Program);
-    // РџСЂРёРІСЏР·С‹РІР°РµРј РІР°Рѕ
+
+    glUniform1f(Unif_reg, reg);
+
+    // Активируем текстурный блок 0, делать этого не обязательно, по умолчанию
+    // и так активирован GL_TEXTURE0, это нужно для использования нескольких текстур
+    glActiveTexture(GL_TEXTURE0);
+    // Обёртка SFML на opengl функцией glBindTexture
+    sf::Texture::bind(&ourTexture1);
+    // В uniform кладётся текстурный индекс текстурного блока (для GL_TEXTURE0 - 0, для GL_TEXTURE1 - 1 и тд)
+    glUniform1i(unifTexture1, 0);
+
+    glActiveTexture(GL_TEXTURE1);
+    // Обёртка SFML на opengl функцией glBindTexture
+    sf::Texture::bind(&ourTexture2);
+    // В uniform кладётся текстурный индекс текстурного блока (для GL_TEXTURE0 - 0, для GL_TEXTURE1 - 1 и тд)
+    glUniform1i(unifTexture2, 1);
+
+    // Привязываем вао
     glBindVertexArray(VAO);
-    // РџРµСЂРµРґР°РµРј РґР°РЅРЅС‹Рµ РЅР° РІРёРґРµРѕРєР°СЂС‚Сѓ(СЂРёСЃСѓРµРј)
+    // Передаем данные на видеокарту(рисуем)
     glDrawArrays(GL_TRIANGLES, 0, vertices.size());
     glBindVertexArray(0);
-    // РћС‚РєР»СЋС‡Р°РµРј С€РµР№РґРµСЂРЅСѓСЋ РїСЂРѕРіСЂР°РјРјСѓ
+    // Отключаем шейдерную программу
     glUseProgram(0);
     checkOpenGLerror(3);
 }
 
 
-// РћСЃРІРѕР±РѕР¶РґРµРЅРёРµ С€РµР№РґРµСЂРѕРІ
+// Освобождение шейдеров
 void ReleaseShader() {
-    // РџРµСЂРµРґР°РІР°СЏ РЅРѕР»СЊ, РјС‹ РѕС‚РєР»СЋС‡Р°РµРј С€РµР№РґСЂРЅСѓСЋ РїСЂРѕРіСЂР°РјРјСѓ
+    // Передавая ноль, мы отключаем шейдрную программу
     glUseProgram(0);
-    // РЈРґР°Р»СЏРµРј С€РµР№РґРµСЂРЅСѓСЋ РїСЂРѕРіСЂР°РјРјСѓ
+    // Удаляем шейдерную программу
     glDeleteProgram(Program);
 }
 
-// РћСЃРІРѕР±РѕР¶РґРµРЅРёРµ Р±СѓС„РµСЂР°
+// Освобождение буфера
 void ReleaseVBO()
 {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
