@@ -7,7 +7,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
-#include "obj_parsing.h"
+#include "lighting.h"
 
 
 // Переменные с индентификаторами ID
@@ -384,11 +384,11 @@ void InitPositionBuffers()
 
 	auto i0 = glGetAttribLocation(Program, "vertexPosition");
 	auto i1 = glGetAttribLocation(Program, "vertexNormale");
-	auto i2 = glGetAttribLocation(Program, "vertexTextureCoords");
+	//auto i2 = glGetAttribLocation(Program, "vertexTextureCoords");
 
 	glEnableVertexAttribArray(i0);
 	glEnableVertexAttribArray(i1);
-	glEnableVertexAttribArray(i2);
+	//glEnableVertexAttribArray(i2);
 
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(GLfloat), &vertices[0], GL_STATIC_DRAW);
@@ -403,17 +403,17 @@ void InitPositionBuffers()
 	// Атрибут с цветом
 	glVertexAttribPointer(i1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
 	// Атрибут с текстурой
-	glVertexAttribPointer(i2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(6 * sizeof(GLfloat)));
+	//glVertexAttribPointer(i2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(6 * sizeof(GLfloat)));
 	//glEnableVertexAttribArray(0);
 
-	std::cout << i0 << " " << i1 << " " << i2 << std::endl;
+	//std::cout << i0 << " " << i1 << " " << i2 << std::endl;
 	std::cout << vertices.size() << std::endl;
 
 	//Отвязываем VAO
 	glBindVertexArray(0);
 	glDisableVertexAttribArray(i0);
 	glDisableVertexAttribArray(i1);
-	glDisableVertexAttribArray(i2);
+	//glDisableVertexAttribArray(i2);
 	checkOpenGLerror(1);
 }
 
