@@ -27,6 +27,7 @@
     <ClCompile Include="Oren.cpp" />
     <ClCompile Include="phong.cpp" />
     <ClCompile Include="ToonShading.cpp" />
+    <ClCompile Include="texturing.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Blinn.h" />
@@ -37,6 +38,7 @@
     <ClInclude Include="phong.h" />
     <ClInclude Include="switcher.h" />
     <ClInclude Include="ToonShading.h" />
+    <ClInclude Include="texturing.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

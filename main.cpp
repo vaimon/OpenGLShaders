@@ -16,6 +16,9 @@
 
 #ifdef BLINN
 #include"lighting.h"
+
+#ifdef TEXTURING
+#include "texturing.h"
 #endif
 
 #ifdef TOONSHADING
@@ -44,7 +47,7 @@ int main() {
 	case 6: task_main(".\\shapes\\torus.obj"); return 0;
 	case 7: task_main(".\\shapes\\teapot.obj"); return 0;
 	}
-	
-	
+
+
 	return 1;
 }
